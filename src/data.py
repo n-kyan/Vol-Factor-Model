@@ -14,7 +14,7 @@ import requests
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = PROJECT_ROOT / "data" / "raw"
 KEN_FRENCH_URL_BASE = "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
-
+CBOE_VIX_URL = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
 
 # Utility Functions
 def download_raw_data(url: str, dest: Path) -> Path:
@@ -30,11 +30,9 @@ def download_raw_data(url: str, dest: Path) -> Path:
     dest.write_bytes(response.content)
     return dest
 
-def load_kfrench_table(zip_path: Path, section_title: str | None = None) -> pd.DataFrame:
-    # Parse Ken French CSV zip for individual data tables by title
-    # return table as a df with DatetimeIndex, decimal returns, NaN for missing
-
-    # Read csv
+def load_kfrench_table(file_name: str, section_title: str | None = None) -> pd.DataFrame:
+    """Download (if needed) and parse one table from a Ken French CSV zip: DatetimeIndex, decimal returns, NaN for missing."""
+    zip_path = download_raw_data(KEN_FRENCH_URL_BASE + file_name, RAW_DIR / file_name)
     raw = pd.read_csv(zip_path, header=None, names=range(100), dtype=str, skip_blank_lines=False)
 
     # Remove leading and trailing whitespace from cells in col 0
@@ -73,37 +71,18 @@ def load_kfrench_table(zip_path: Path, section_title: str | None = None) -> pd.D
     table = table / 100
     return table
 
-
-ind_zip = download_raw_data(KEN_FRENCH_URL_BASE + "49_Industry_Portfolios_daily_CSV.zip",
-                       RAW_DIR / "49_Industry_Portfolios_daily_CSV.zip")
-ff_zip = download_raw_data(KEN_FRENCH_URL_BASE + "F-F_Research_Data_Factors_daily_CSV.zip",
-                      RAW_DIR / "F-F_Research_Data_Factors_daily_CSV.zip")
-
-ind = load_kfrench_table(ind_zip, "Average Value Weighted")
-ff = load_kfrench_table(ff_zip)
-
-ind = load_kfrench_table(ind_zip, "Average Value Weighted")
-ff = load_kfrench_table(ff_zip)
-
-
-CBOE_VIX_URL = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
-
-def load_vix_table(csv_path: Path) -> pd.Series:
+def load_vix_table() -> pd.Series:
     """return VIX close in index points with a DatetimeIndex, sorted by date."""
 
+    csv_path = download_raw_data(CBOE_VIX_URL, RAW_DIR / "VIX_History.csv")
+
     raw = pd.read_csv(csv_path)
-    vix = raw.set_index("Date")["Close"]
-    vix.index = pd.to_datetime(vix.index, format="%Y-%m-%d")
+    vix = raw.set_index("DATE")["CLOSE"]
+    vix.index = pd.to_datetime(vix.index, format="%m/%d/%Y")
     vix = vix.astype(float).sort_index().rename("VIX")
     vix.index.name = "date"
 
     return vix
-
-
-vix_csv = download_raw_data(CBOE_VIX_URL, RAW_DIR/"VIX.csv")
-
-vix = load_vix_table(vix_csv)
-vix
 
 
 # (FF3) Market Returns DataFrame
@@ -133,14 +112,9 @@ vix
 
 def build_data(start: str = "2000-01-03", threshold: float = 25.0) -> pd.DataFrame:
     """Returns panel of industry excess returns and a tables of the Mkt-RF, VIX, VIX_log_returns, and regime flag time series; inner-joined."""
-    ind = load_kfrench_table(
-        download_raw_data(KEN_FRENCH_URL_BASE + "49_Industry_Portfolios_daily_CSV.zip",
-                          RAW_DIR / "49_Industry_Portfolios_daily_CSV.zip"),
-        "Average Value Weighted")
-    ff = load_kfrench_table(
-        download_raw_data(KEN_FRENCH_URL_BASE + "F-F_Research_Data_Factors_daily_CSV.zip",
-                          RAW_DIR / "F-F_Research_Data_Factors_daily_CSV.zip"))
-    vix = load_vix_table(download_raw_data(CBOE_VIX_URL, RAW_DIR / "VIX_History.csv"))
+    ind = load_kfrench_table("49_Industry_Portfolios_daily_CSV.zip", "Average Value Weighted")
+    ff = load_kfrench_table("F-F_Research_Data_Factors_daily_CSV.zip")
+    vix = load_vix_table()
 
     panel = pd.concat(
         [ind, ff[["Mkt-RF", "RF"]], vix, vix_log_returns(vix), regime_flag(vix, threshold)],
@@ -162,3 +136,28 @@ def build_data(start: str = "2000-01-03", threshold: float = 25.0) -> pd.DataFra
 
     industries_kept = [c for c in industries if c not in dropped]
     return panel[industries_kept], panel.drop(columns=industries_kept)
+
+def summarize_data(returns: pd.DataFrame, factors: pd.DataFrame) -> pd.Series:
+    """Sample size, regime split, factor moments, and the SD-ratio check for dlnVIX vs. dVIX."""
+    dvix = factors["VIX"] * (1 - np.exp(-factors["VIX_log_returns"]))
+    changes = pd.DataFrame({"dVIX": dvix, "VIX_log_returns": factors["VIX_log_returns"]})
+    sd = changes.groupby(factors["high"]).std()
+    ratio = sd.loc[True] / sd.loc[False]
+
+    return pd.Series({
+        "start": returns.index.min().date(),
+        "end": returns.index.max().date(),
+        "days": len(returns),
+        "days_high": int(factors["high"].sum()),
+        "days_low": int((~factors["high"]).sum()),
+        "industries": returns.shape[1],
+        "share_high": factors["high"].mean(),
+        "VIX_mean": factors["VIX"].mean(),
+        "VIX_median": factors["VIX"].median(),
+        "Mkt-RF_mean": factors["Mkt-RF"].mean(),
+        "Mkt-RF_sd": factors["Mkt-RF"].std(),
+        "VIX_log_returns_mean": factors["VIX_log_returns"].mean(),
+        "VIX_log_returns_sd": factors["VIX_log_returns"].std(),
+        "sd_ratio_dVIX": ratio["dVIX"],
+        "sd_ratio_VIX_log_returns": ratio["VIX_log_returns"],
+    })

@@ -7,9 +7,15 @@ app = marimo.App(width="medium")
 @app.cell
 def _():
     import marimo as mo
-    from data import build_data
+    from data import load_kfrench_table, load_vix_table, build_data, summarize_data
+    from factors import vix_log_returns, regime_flag
 
-    return build_data, mo
+    return build_data, mo, summarize_data
+
+
+@app.cell
+def _():
+    return
 
 
 @app.cell(hide_code=True)
@@ -54,8 +60,14 @@ def _(mo):
 
 
 @app.cell
-def _(build_data):
-    ind, other = build_data()
+def _(build_data, summarize_data):
+    returns, factors = build_data()
+
+    factors
+
+    s = summarize_data(returns, factors)
+
+    s
     return
 
 
