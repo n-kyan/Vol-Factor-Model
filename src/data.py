@@ -1,9 +1,9 @@
-from factors import vix_log_returns, regime_flag
+from factors import dvix, regime_flag, regime_threshold
 
 # First order of business is fetching all of the raw data that we need.
 #
 # 1. Ken French Data from their website
-# 2. Stock data from yfinance
+# 2. VIX close data from CBOE
 
 from pathlib import Path
 
@@ -101,7 +101,7 @@ def load_vix_table() -> pd.Series:
 
 # VIX DataFrame
 #
-# The VIX is in units of annualized vol in "points", where a VIX of 20 == 20% annualized vol. Each cell is divided to convert the units to decimals.
+# The VIX is in units of annualized vol in "points", where a VIX of 20 == 20% annualized vol. .
 #
 # A key decision must be made here. Should the model use daily VIX Level or the daily change in the VIX Level. I decided to use change in VIX becuase is an apprimation for the new information from the VIX each day. This is motivated by Robert Mertons concept of isolating "innovations" (ICPAM )
 #
@@ -110,14 +110,14 @@ def load_vix_table() -> pd.Series:
 # "Better heuristic: to measure reaction to news or a priced risk, use an innovation. To measure state-dependence, use a conditioning variable with SEs that account for persistence." - 🤖
 
 
-def build_data(start: str = "2000-01-03", threshold: float = 25.0) -> pd.DataFrame:
-    """Returns panel of industry excess returns and a tables of the Mkt-RF, VIX, VIX_log_returns, and regime flag time series; inner-joined."""
+def build_data(start: str = "1990-01-03") -> pd.DataFrame:
+    """Returns panel of industry excess returns and a tables of the Mkt-RF, VIX, dVIX, and regime flag time series; inner-joined."""
     ind = load_kfrench_table("49_Industry_Portfolios_daily_CSV.zip", "Average Value Weighted")
     ff = load_kfrench_table("F-F_Research_Data_Factors_daily_CSV.zip")
     vix = load_vix_table()
 
     panel = pd.concat(
-        [ind, ff[["Mkt-RF", "RF"]], vix, vix_log_returns(vix), regime_flag(vix, threshold)],
+        [ind, ff[["Mkt-RF", "RF"]], vix, dvix(vix), regime_flag(vix)],
         axis=1, join="inner",
     ).loc[start:]
 
@@ -138,26 +138,20 @@ def build_data(start: str = "2000-01-03", threshold: float = 25.0) -> pd.DataFra
     return panel[industries_kept], panel.drop(columns=industries_kept)
 
 def summarize_data(returns: pd.DataFrame, factors: pd.DataFrame) -> pd.Series:
-    """Sample size, regime split, factor moments, and the SD-ratio check for dlnVIX vs. dVIX."""
-    dvix = factors["VIX"] * (1 - np.exp(-factors["VIX_log_returns"]))
-    changes = pd.DataFrame({"dVIX": dvix, "VIX_log_returns": factors["VIX_log_returns"]})
-    sd = changes.groupby(factors["high"]).std()
-    ratio = sd.loc[True] / sd.loc[False]
-
+    """Sample size, regime split, and factor moments."""
     return pd.Series({
         "start": returns.index.min().date(),
         "end": returns.index.max().date(),
         "days": len(returns),
+        "industries": returns.shape[1],
+        "regime_threshold": regime_threshold(load_vix_table()),
         "days_high": int(factors["high"].sum()),
         "days_low": int((~factors["high"]).sum()),
-        "industries": returns.shape[1],
         "share_high": factors["high"].mean(),
         "VIX_mean": factors["VIX"].mean(),
         "VIX_median": factors["VIX"].median(),
         "Mkt-RF_mean": factors["Mkt-RF"].mean(),
         "Mkt-RF_sd": factors["Mkt-RF"].std(),
-        "VIX_log_returns_mean": factors["VIX_log_returns"].mean(),
-        "VIX_log_returns_sd": factors["VIX_log_returns"].std(),
-        "sd_ratio_dVIX": ratio["dVIX"],
-        "sd_ratio_VIX_log_returns": ratio["VIX_log_returns"],
+        "dVIX_mean": factors["dVIX"].mean(),
+        "dVIX_sd": factors["dVIX"].std(),
     })

@@ -8,7 +8,7 @@ app = marimo.App(width="medium")
 def _():
     import marimo as mo
     from data import load_kfrench_table, load_vix_table, build_data, summarize_data
-    from factors import vix_log_returns, regime_flag
+    from factors import dvix, regime_flag
 
     return build_data, mo, summarize_data
 
@@ -26,7 +26,7 @@ def _(mo):
     n.kyan@outlook.com
     10/15/26
 
-    This project is managed using uv. To run the project use 'uv run marimo run main.py'.
+    This project is managed using uv. To run the project use 'uv run marimo run src/main.py'.
 
     AI Disclaimer: I will be using Claude throughout this process for educational purposes and for understanding what data is readily  available to me and how to get it. I will be writing all of the code and documentation myself. I will do my best to specify where AI was used with this symbol 🤖.
     """)
@@ -36,25 +36,36 @@ def _(mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## Outline of Project with Personal Notes:
+    ## Project Outline 🤖
 
-    **Data:**
-    Stock data from yfinance and download daily/monthly data from the Ken French Data Library. Look into factor normalization.
+    **Question:** How do industries react to volatility shocks beyond what market moves explain, and does that change at different VIX levels?
 
-    **Statistical Estimator:** Code a Ordinary Least Squares (OLS) Estimator using Lin Alg via NumPy. Write it from scratch so you can understand the math. Decide if its as cross-sectional or time series regression and why.
+    **Hypotheses** (judged by the overall pattern across the 49 industries; at 95% confidence about 2–3 will look significant by chance)
 
-    **Factor Model:** Look into factor normalization, multicolinearity, linear independence, and Gram-Schmidt Projection. Minimize residual variance; consider the concept of inverting matricies and minimizing rather than trying to maximize.
+    - **H1, direction:** each industry's vol-shock sensitivity has the same sign in low- and high-VIX periods. Judged only for industries whose confidence interval excludes zero in both regimes.
+    - **H2, magnitude:** vol-shock sensitivities are larger in absolute value in high-VIX periods.
 
-    **Portfolio Covariance:** Construct the covariance matrix of the assets (more Lin Alg). Use it to calculate things like portfolio vol and VaR. Generate confidence intervals with Bootstrapping via Monte Carlo Sim. Covariance shifts over time.
+    **Data** (daily, 1990 to latest available)
 
-    **Optimization:** Find the weights that maximize sharpe ratio. Maybe use the invert and minimize tech here. Look into Markowitz Optimization and alternatives. How does this all work as portfolio evolves over time?
+    - Ken French 49 industry portfolios, value-weighted, daily returns
+    - Ken French daily Mkt-RF and RF (industry excess return = industry return − RF)
+    - Cboe VIX daily close
 
-    **Final Write-Up:** Clean up code and make sure documentation doesn't have any spelling or grammar errors. Write a conclusion a-la scientific method.
+    **Steps**
 
-    ## General Ideas About Direction
-    Rather than picking arbitrary factors to model I want to look into using volatiltiy as my factors. Initial thoughts are that this could look like using vix data, vix futures data, implied vol on vix options, implied vol of snp500, realized vol of snp500, sector implied vol, realized vol of sector. If not then something else that could be interesting is looking at interest rates. This piques my curiosity more than looking at things like size, momentum, or P/E ratio as of right now. After some chatting with Claude, I have settled on using SnP500 20-day rolling realized vol and the vol risk premium (difference between implied vol and realized vol).
+    1. **Data:** download, handle missing values (-99.99), align dates, compute industry excess returns and daily VIX changes in points.
+    2. **Gram-Schmidt:** regress VIX changes on Mkt-RF; the residual is the vol shock. Market goes first. Report the market–VIX correlation.
+    3. **Time-series regressions:** regress each industry's excess return on Mkt-RF and the vol shock to get its market sensitivity (β) and vol-shock sensitivity (γ). Full sample.
+    4. **Regimes:** split days by prior-day VIX close, above vs. below the long-run median. Re-run step 3 within each regime.
+    5. **Monte Carlo validation:** simulate data with known β, γ and a known regime difference; confirm steps 2–4 recover them and that confidence intervals contain the truth about 95% of the time.
+    6. **Block bootstrap:** confidence intervals for γ in each regime and for the high-minus-low difference.
+    7. **Evaluate H1 and H2** against the chance baseline.
 
-    For the price data, I am planning on pulling daily data for sector ETFs, SnP500, and the VIX. This should be fun for modeling because prices, RV and VIX are in different units, and realized vol and the VRP will be highly correlated. I need to decide if I am using prices/VIX level or returns/change in VIX.
+    **Known caveats**
+
+    - If industries respond to percentage VIX moves, per-point sensitivity will mechanically shrink at high VIX. This biases against H2.
+    - Mkt-RF covers all CRSP US firms, while VIX is based on S&P 500 options. Close, but not identical.
+    - High-VIX days come from a few episodes, so the effective sample is smaller than the day count.
     """)
     return
 

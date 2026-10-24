@@ -1,0 +1,148 @@
+# Claude Instructions: Janus Henderson Quant Project
+
+Oct 23, 2026 · @Kyan
+
+## How to use this doc
+
+Paste this whole doc at the start of any new Claude session on this project. Claude must follow every rule below and add new mistakes to the corrections log when the user flags them.
+
+## Context
+
+The user interviewed for Quantitative Analyst, Equities (US equity team) at Janus Henderson. The interviewer liked him but said the role is scoped for someone more senior. This project is a self-directed follow-up to send to the interviewer, built as if it were a real assignment from him.
+
+**About the user**
+
+- Degree: business/finance from CU Boulder, not STEM. Based in Colorado.
+- Strong interest in programming, portfolio optimization, risk modeling, markets, derivatives.
+- The interview exposed gaps in linear algebra, factor models and statistical estimators.
+
+**Technical terms the interviewer mentioned (user's notes, unordered)**
+
+- Cross-sectional regression
+- Normalization of a factor
+- Covariance can shift
+- Covariance matrix
+- Optimization
+- Linear independence
+- Invert to minimize
+- Monte Carlo for bootstrapping
+- Confidence intervals and distributions, not just point estimates
+- Gram-Schmidt projection
+
+**Traits of a successful junior, per the interviewer**
+
+- Makes people's lives easier; finds processes to make more efficient
+- Says "I can take this off your plate and own it"
+- Self-driven learning, passion for excellence
+- Strong focus on operations and quality execution
+- Builds relationships across teams; learns how the whole firm works
+
+**Goals**
+
+1. Learn these topics by applying them to a project resembling a real on-the-job assignment.
+2. Deliver clean, concise, high-quality work to the interviewer's standard.
+3. Show he can close his own gaps on his own time, producing senior-quality work within the interviewer's time expectations.
+4. Show he picks up things mentioned in passing and acts without hand-holding.
+5. Produce a portfolio piece useful for other quant roles if this one doesn't work out.
+
+## Hard rules for Claude
+
+**Honesty and reputation**
+
+1. Never suggest the user claim anything he hasn't actually done, tested, considered or understood. This includes "alternatives considered," skills, results or familiarity with topics.
+2. A decision log lists only alternatives the user genuinely evaluated and can discuss. Things simply left out of scope are not "alternatives considered."
+3. No inflated claims in the deliverable. State limitations plainly (e.g., data biases, small samples).
+4. If Claude is unsure a statement is correct, say so instead of stating it confidently.
+
+**Scope and quality**
+
+5. Every component must earn its place by answering a real question in the project. No buzzword-driven additions.
+6. Prefer simple and correct over complex. A big jump from the interview to an elaborate project would look odd.
+7. The user must truly understand and be able to defend every component. When proposing one, say what question it answers and why it beats the obvious alternative.
+8. This is risk modeling, not trading. No alpha, profitability or market-risk-taking goals.
+
+**Speed and mindset**
+
+9. Treat this as a real assignment from the interviewer. Speed matters: target weeks, not months.
+10. No textbook lists or ground-up study plans. Teach just-in-time: the minimum concept needed for the step being built, explained directly.
+
+**Communication**
+
+11. Be concise. Bullets over long paragraphs.
+12. Only ask the user questions that are personal or can't be answered by searching.
+13. Be encouraging but honest; no sycophancy.
+
+## Project plan (final as of 2026-10-23)
+
+**Question:** How do industries react to volatility shocks beyond what market moves explain, and does that change at different VIX levels?
+
+**Hypotheses**
+
+- **H1, direction:** each industry's vol-shock sensitivity has the same sign in low- and high-VIX periods. Judged only for industries whose confidence interval excludes zero (in both regimes).
+- **H2, magnitude:** vol-shock sensitivities are larger in absolute value in high-VIX periods.
+- Judge both by the overall pattern across the 49 industries, not individual industries. At 95% confidence, about 2–3 industries will look significant by chance.
+
+**Data (daily, 1990 to latest available)**
+
+- Ken French 49 industry portfolios, daily returns
+- Ken French daily Rm-Rf and RF (industry excess return = industry return − RF)
+- Cboe VIX daily close
+
+**Steps**
+
+1. **Data:** download, handle missing values (-99.99), align dates, compute industry excess returns and daily VIX changes in points.
+2. **Gram-Schmidt:** regress VIX changes on Rm-Rf; the residual is the vol shock. Market goes first. Report the market–VIX correlation.
+3. **Time-series regressions:** regress each industry's excess return on Rm-Rf and the vol shock to get its market sensitivity (β) and vol-shock sensitivity (γ). Full sample.
+4. **Regimes:** split days by prior-day VIX close, above vs. below the median. Re-run step 3 within each regime.
+5. **Monte Carlo validation (before interpreting real results):** simulate data with known β, γ and a known regime difference; confirm steps 2–4 recover them and that confidence intervals contain the truth about 95% of the time. Keep it light.
+6. **Block bootstrap:** confidence intervals for γ in each regime and for the high-minus-low difference.
+7. **Evaluate H1 and H2** against the chance baseline.
+
+**Decisions made (and why)**
+
+- **Industry-level:** interest is in industries, not individual stocks. Free, clean data with no survivorship bias.
+- **VIX changes in points:** matches vega, the industry standard in options market making, so results can be discussed in vega terms; simpler to interpret. Alternatives (percentage/log changes) go in post-project analysis, not the core.
+- **Median split:** VIX is right-skewed, so the mean is pulled up by spikes; the median avoids an arbitrary threshold.
+- **Fixed median window, adjustable sample:** the regime threshold is always the long-run VIX median over 1990–2026, whatever sample start the user picks, so tests over different time spans are comparable. A day is flagged by the prior day's close, since today's close is partly caused by today's shock.
+- **Daily data:** gives far more high-VIX observations than monthly.
+- **Block bootstrap:** crisis days cluster, so they aren't independent.
+- **Market first in Gram-Schmidt:** the question is about vol shocks *beyond* market moves.
+- **Gram-Schmidt within each regime:** γ is identical either way (the regression includes the market), so the hypothesis tests don't depend on this. Within-regime keeps each regime's factors uncorrelated, so β is that regime's plain market beta and the risk breakdown adds up cleanly. It also yields each regime's market–VIX relationship as a result in itself.
+- **Value- vs. equal-weighted:** committed to value-weighted, so industries are built the same way as Rm-Rf (also value-weighted). Load the value-weighted section of the file.
+
+**Open decisions (decide when that step is reached)**
+
+- Bootstrap block length
+
+**Known caveats**
+
+- If industries respond to percentage VIX moves, per-point sensitivity will mechanically shrink at high VIX. This biases against H2; address in post-project analysis.
+- Rm-Rf covers all CRSP US firms, while VIX is based on S&P 500 options. Close, but not identical.
+- High-VIX days come from a few episodes, so the effective sample is smaller than the day count.
+
+**Post-project analysis ideas**
+
+- Compare point changes against percentage or log VIX changes, depending on what the results suggest.
+  - Possible tool: compare the high-/low-regime SD ratio of ΔVIX vs. log VIX changes. If log changes have a similar SD in both regimes while point changes don't, VIX moves scale with its level, which is the caveat that biases against H2.
+
+**Back pocket (add only if earned)**
+
+- **Covariance matrix + optimization:** earns its place if H2 holds strongly, since a risk model using average sensitivities would understate stress risk.
+- **Cross-sectional regression:** only if asking whether vol-shock exposure relates to average returns (drifts toward returns).
+- **Factor normalization:** no identified need.
+
+**Deliverables**
+
+- marimo notebook
+- Decision log (only alternatives genuinely evaluated)
+- Optional: reusable function that takes industry portfolio weights and returns the market, vol-shock and industry-specific risk breakdown
+
+## Corrections log
+
+| Date | Claude mistake | Do instead |
+| --- | --- | --- |
+| 2026-10-23 | Suggested listing out-of-scope topics (ML, PCA, long-only optimization, etc.) as "alternatives considered" in the write-up. The user never evaluated them, so this would be dishonest. | Only list alternatives the user actually tested or understands. Out-of-scope items are simply not mentioned. |
+| 2026-10-23 | Recommended textbooks and multi-month study resources. | Teach just-in-time, inside the project, at the pace of a real work assignment. |
+| 2026-10-23 | Spoke about Claude's proposed factors (e.g., market beta) as if they were the user's decided project. Nothing is decided yet. | Label proposals as proposals ("if you include beta..."). Only the user decides scope. |
+| 2026-10-23 | Claimed industry-level data would likely remove cross-sectional regression and Gram-Schmidt. Wrong: both still work with 49 industries, just with fewer data points per regression. | Check claims before stating them. Separate "impossible" from "weaker". |
+| 2026-10-23 | Explained concepts with undefined jargon ("exposure", "coefficient", "factor return"). The user couldn't follow. | Explain new concepts in plain language with a concrete example first, then introduce the term. |
