@@ -1,6 +1,8 @@
 import numpy as np
 import pandas as pd
 
+from ols import add_intercept, ols, residuals
+
 
 
 # Fixed window so the threshold is the same no matter what sample start is chosen.
@@ -23,3 +25,15 @@ def dvix(vix: pd.Series) -> pd.Series:
     """Daily change of VIX. Follows vega convention."""
 
     return vix.diff().dropna().rename("dVIX")
+
+
+def vol_shock(dvix: np.ndarray, mkt: np.ndarray) -> np.ndarray:
+    """Step 2 (Gram-Schmidt): the part of each day's VIX change that the market doesn't explain.
+
+    Regress dVIX on [1, Mkt-RF] and keep the residual. Inputs and output are NumPy arrays (days,).
+    """
+    # Why market first: the question is about vol moves *beyond* what market moves explain,
+    # so the market keeps everything it can explain and the vol shock gets only the leftover.
+    X = add_intercept(mkt)
+    b = ols(X, dvix)
+    return residuals(X, dvix, b)

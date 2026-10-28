@@ -10,12 +10,7 @@ def _():
     from data import load_kfrench_table, load_vix_table, build_data, summarize_data
     from factors import dvix, regime_flag
 
-    return build_data, mo, summarize_data
-
-
-@app.cell
-def _():
-    return
+    return build_data, load_vix_table, mo, summarize_data
 
 
 @app.cell(hide_code=True)
@@ -67,6 +62,19 @@ def _(mo):
     - Mkt-RF covers all CRSP US firms, while VIX is based on S&P 500 options. Close, but not identical.
     - High-VIX days come from a few episodes, so the effective sample is smaller than the day count.
     """)
+    return
+
+
+@app.cell
+def _(load_vix_table):
+    vix = load_vix_table()
+    vix
+    return
+
+
+@app.cell
+def _():
+                                                 
     return
 
 

@@ -72,6 +72,27 @@ The user interviewed for Quantitative Analyst, Equities (US equity team) at Janu
 12. Only ask the user questions that are personal or can't be answered by searching.
 13. Be encouraging but honest; no sycophancy.
 
+## Working method (updated 2026-10-26)
+
+**Build phase (now).** Claude writes the code for Steps 2–7, as simple and readable as possible so it can be walked through later. The user follows each step conceptually:
+
+- what question it answers
+- what the results say
+- any decision that needs the user's call
+- **the why behind every design decision**
+
+Each step in `src/workbench.py` has three parts: Question, Decisions and why (decision | why | obvious alternative and why not), and Result. Non-obvious code choices carry a `# Why:` comment. Work pauses at three checkpoints:
+
+1. after Steps 2–4
+2. after Steps 6 and 5
+3. after Step 7
+
+Alternatives named in these explanations are for understanding only. The deliverable's decision log still lists only alternatives the user genuinely evaluated.
+
+**Understanding phase (after results are confirmed).** Walk through every piece while building `src/main.py`, with the user explaining each part in their own words. `src/lessons.py` (Lesson 1: OLS) is reference material for this phase.
+
+**Code base.** Hand-written OLS and solver (`src/ols.py`). NumPy is used for speed only, with no library estimators.
+
 ## Project plan (final as of 2026-10-23)
 
 **Question:** How do industries react to volatility shocks beyond what market moves explain, and does that change at different VIX levels?
@@ -97,6 +118,7 @@ The user interviewed for Quantitative Analyst, Equities (US equity team) at Janu
 5. **Monte Carlo validation (before interpreting real results):** simulate data with known β, γ and a known regime difference; confirm steps 2–4 recover them and that confidence intervals contain the truth about 95% of the time. Keep it light.
 6. **Block bootstrap:** confidence intervals for γ in each regime and for the high-minus-low difference.
 7. **Evaluate H1 and H2** against the chance baseline.
+8. **Resume section (mandatory, critical; added 2026-10-28):** translate the finished project into a resume section with bullet points. Every bullet must pass the honesty rules: only what the user did, understands and can defend in an interview, with real numbers from the results and limitations not hidden. Write it after the understanding phase, so the user can stand behind every claim.
 
 **Decisions made (and why)**
 
@@ -108,11 +130,14 @@ The user interviewed for Quantitative Analyst, Equities (US equity team) at Janu
 - **Block bootstrap:** crisis days cluster, so they aren't independent.
 - **Market first in Gram-Schmidt:** the question is about vol shocks *beyond* market moves.
 - **Gram-Schmidt within each regime:** γ is identical either way (the regression includes the market), so the hypothesis tests don't depend on this. Within-regime keeps each regime's factors uncorrelated, so β is that regime's plain market beta and the risk breakdown adds up cleanly. It also yields each regime's market–VIX relationship as a result in itself.
+- **Block length 20 days, SE intervals (decided 2026-10-28):** too-short blocks cut crisis runs apart (bias ~ 1/ℓ); too-long blocks leave few distinct blocks (noise ~ ℓ/n). Balancing them gives ℓ ∝ n^(1/3) for estimating a variance (Hall, Horowitz & Jing 1995); 9,228^(1/3) ≈ 21. So intervals are estimate ± 1.96 × bootstrap SE, the case the rule is optimal for. Percentile intervals would need ~n^(1/5) ≈ 6-day blocks instead. The rule gives a rate, not the constant. The user still needs to be able to explain this decision in their own words in the understanding phase.
+- **H1 kept as written after seeing the data (2026-10-28):** only 2 industries (Softw, Chips) have γ intervals excluding 0 in both regimes, so H1 is reported as untestable rather than loosened. Changing the test after seeing results would be data snooping. Step 7 shows the 2×2 significance table (low sig / high sig) to explain why.
+- **Significant-industry count per regime is supporting context for H2 (2026-10-28):** 6 industries with significant γ at low VIX vs. 20 at high VIX. Not a pre-set test, so it's reported as descriptive only.
 - **Value- vs. equal-weighted:** committed to value-weighted, so industries are built the same way as Rm-Rf (also value-weighted). Load the value-weighted section of the file.
 
 **Open decisions (decide when that step is reached)**
 
-- Bootstrap block length
+- None right now.
 
 **Known caveats**
 
@@ -124,6 +149,7 @@ The user interviewed for Quantitative Analyst, Equities (US equity team) at Janu
 
 - Compare point changes against percentage or log VIX changes, depending on what the results suggest.
   - Possible tool: compare the high-/low-regime SD ratio of ΔVIX vs. log VIX changes. If log changes have a similar SD in both regimes while point changes don't, VIX moves scale with its level, which is the caveat that biases against H2.
+- Block-length sensitivity: rerun the bootstrap with shorter and longer blocks (e.g. 10 and 60 days) and check whether the H1/H2 conclusions change.
 
 **Back pocket (add only if earned)**
 
@@ -146,3 +172,5 @@ The user interviewed for Quantitative Analyst, Equities (US equity team) at Janu
 | 2026-10-23 | Spoke about Claude's proposed factors (e.g., market beta) as if they were the user's decided project. Nothing is decided yet. | Label proposals as proposals ("if you include beta..."). Only the user decides scope. |
 | 2026-10-23 | Claimed industry-level data would likely remove cross-sectional regression and Gram-Schmidt. Wrong: both still work with 49 industries, just with fewer data points per regression. | Check claims before stating them. Separate "impossible" from "weaker". |
 | 2026-10-23 | Explained concepts with undefined jargon ("exposure", "coefficient", "factor return"). The user couldn't follow. | Explain new concepts in plain language with a concrete example first, then introduce the term. |
+| 2026-10-26 | Asked the user to derive and code OLS from hints alone with no math background; it stalled progress. | Teach with worked code and tiny examples first, then the user applies it, Claude reviews, then 2–3 quick concept questions (see Working method). |
+| 2026-10-26 | Lesson 1 front-loaded linear algebra; the user got lost and progress stalled. | Implement first, discuss concepts, results and the why behind each decision; deep-dive into understanding at the presentation stage. |
