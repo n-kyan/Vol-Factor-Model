@@ -72,26 +72,26 @@ The user interviewed for Quantitative Analyst, Equities (US equity team) at Janu
 12. Only ask the user questions that are personal or can't be answered by searching.
 13. Be encouraging but honest; no sycophancy.
 
-## Working method (updated 2026-10-26)
+## Working method (updated 2026-10-29)
 
-**Build phase (now).** Claude writes the code for Steps 2–7, as simple and readable as possible so it can be walked through later. The user follows each step conceptually:
+**Build phase: done.** Claude implemented Steps 2–7 and walked the user through each step, its results and the why behind every decision (three checkpoints). Results are confirmed.
 
-- what question it answers
-- what the results say
-- any decision that needs the user's call
-- **the why behind every design decision**
+**Presentation and understanding phase (now).** Two layers of notebooks:
 
-Each step in `src/workbench.py` has three parts: Question, Decisions and why (decision | why | obvious alternative and why not), and Result. Non-obvious code choices carry a `# Why:` comment. Work pauses at three checkpoints:
+- **`src/main.py`: the takeaway notebook.** The file the Janus Henderson interviewer, a recruiter or another quant opens. Bottom line on top: the question, the answer and the key numbers come first. Then one short section per phase with only its takeaway (the key table or chart, a few sentences) and a pointer to that phase's companion notebook. A reader gets every important result from this notebook alone. No granular explanations here.
+- **Companion notebooks, one per phase:** `<module>_nb.py`, next to the module it explains (`data_nb.py` for `data.py`, and so on). This is where the granular detail lives, and where the user shows his understanding. Readers open one only if they want more on that phase.
 
-1. after Steps 2–4
-2. after Steps 6 and 5
-3. after Step 7
+**Who does what.**
 
-Alternatives named in these explanations are for understanding only. The deliverable's decision log still lists only alternatives the user genuinely evaluated.
+1. **Claude writes the companion notebooks**: high-quality explanations made of data tables, charts, visuals and markdown, formatted to be attractive and easy to digest. Every decision gets its why. Claude also writes `main.py`'s takeaway sections.
+2. **The user reads them** and rewrites `notes.txt` from scratch: one labeled section per phase, holding his questions and anything he doesn't understand. Claude answers those and fixes the notebooks.
+3. **The user edits Claude's markdown in place** so every section is in his own voice and tone. Text not yet rewritten by the user stays marked 🤖.
 
-**Understanding phase (after results are confirmed).** Walk through every piece while building `src/main.py`, with the user explaining each part in their own words. `src/lessons.py` (Lesson 1: OLS) is reference material for this phase.
+**Style.** Every `mo.md` holds its whole text in one triple-quoted raw string (`r"""` or `rf"""`). Charts follow the visual rules in memory (same-data comparisons, enough points to show the trend). Simple, readable code; no list comprehensions.
 
 **Code base.** Hand-written OLS and solver (`src/ols.py`). NumPy is used for speed only, with no library estimators.
+
+Alternatives named in explanations are for understanding only. The deliverable's decision log still lists only alternatives the user genuinely evaluated.
 
 ## Project plan (final as of 2026-10-23)
 
@@ -174,3 +174,5 @@ Alternatives named in these explanations are for understanding only. The deliver
 | 2026-10-23 | Explained concepts with undefined jargon ("exposure", "coefficient", "factor return"). The user couldn't follow. | Explain new concepts in plain language with a concrete example first, then introduce the term. |
 | 2026-10-26 | Asked the user to derive and code OLS from hints alone with no math background; it stalled progress. | Teach with worked code and tiny examples first, then the user applies it, Claude reviews, then 2–3 quick concept questions (see Working method). |
 | 2026-10-26 | Lesson 1 front-loaded linear algebra; the user got lost and progress stalled. | Implement first, discuss concepts, results and the why behind each decision; deep-dive into understanding at the presentation stage. |
+| 2026-10-29 | Said `main.py` worked after checking only a fresh headless export, while the user's `marimo run --watch` server had loaded the old `data.py`; the notebook errored for them and nothing displayed. | After changing an imported module, tell the user to restart their marimo server (`--watch` reloads only the notebook, not imported modules), and never call it working until it runs in the user's session. |
+| 2026-10-29 | Committed (and amended the commit) without being told to, reading "execute your recommendation" as approval of a commit Claude had only proposed. | Never run commit, amend, reset or add. The user writes every commit message and controls the git flow; at a checkpoint, just say a commit makes sense. |

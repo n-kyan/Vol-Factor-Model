@@ -37,3 +37,12 @@ def vol_shock(dvix: np.ndarray, mkt: np.ndarray) -> np.ndarray:
     X = add_intercept(mkt)
     b = ols(X, dvix)
     return residuals(X, dvix, b)
+
+
+def test_func(phrase: str):
+    '''This is a test function'''
+    print(phrase)
+
+
+
+test_func("poopie")

@@ -16,6 +16,59 @@ RAW_DIR = PROJECT_ROOT / "data" / "raw"
 KEN_FRENCH_URL_BASE = "https://mba.tuck.dartmouth.edu/pages/faculty/ken.french/ftp/"
 CBOE_VIX_URL = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
 
+# Full industry names, from Ken French's Siccodes49.txt (industry definitions file)
+INDUSTRY_NAMES = {
+    "Agric": "Agriculture",
+    "Food": "Food Products",
+    "Soda": "Candy & Soda",
+    "Beer": "Beer & Liquor",
+    "Smoke": "Tobacco Products",
+    "Toys": "Recreation",
+    "Fun": "Entertainment",
+    "Books": "Printing and Publishing",
+    "Hshld": "Consumer Goods",
+    "Clths": "Apparel",
+    "Hlth": "Healthcare",
+    "MedEq": "Medical Equipment",
+    "Drugs": "Pharmaceutical Products",
+    "Chems": "Chemicals",
+    "Rubbr": "Rubber and Plastic Products",
+    "Txtls": "Textiles",
+    "BldMt": "Construction Materials",
+    "Cnstr": "Construction",
+    "Steel": "Steel Works Etc",
+    "FabPr": "Fabricated Products",
+    "Mach": "Machinery",
+    "ElcEq": "Electrical Equipment",
+    "Autos": "Automobiles and Trucks",
+    "Aero": "Aircraft",
+    "Ships": "Shipbuilding, Railroad Equipment",
+    "Guns": "Defense",
+    "Gold": "Precious Metals",
+    "Mines": "Non-Metallic and Industrial Metal Mining",
+    "Coal": "Coal",
+    "Oil": "Petroleum and Natural Gas",
+    "Util": "Utilities",
+    "Telcm": "Communication",
+    "PerSv": "Personal Services",
+    "BusSv": "Business Services",
+    "Hardw": "Computers",
+    "Softw": "Computer Software",
+    "Chips": "Electronic Equipment",
+    "LabEq": "Measuring and Control Equipment",
+    "Paper": "Business Supplies",
+    "Boxes": "Shipping Containers",
+    "Trans": "Transportation",
+    "Whlsl": "Wholesale",
+    "Rtail": "Retail",
+    "Meals": "Restaurants, Hotels, Motels",
+    "Banks": "Banking",
+    "Insur": "Insurance",
+    "RlEst": "Real Estate",
+    "Fin": "Trading",
+    "Other": "Almost Nothing",
+}
+
 # Utility Functions
 def download_raw_data(url: str, dest: Path) -> Path:
     # Download url to dest unles dest already exists
@@ -155,3 +208,5 @@ def summarize_data(returns: pd.DataFrame, factors: pd.DataFrame) -> pd.Series:
         "dVIX_mean": factors["dVIX"].mean(),
         "dVIX_sd": factors["dVIX"].std(),
     })
+
+# Ayo what's good. - Written in emacs.

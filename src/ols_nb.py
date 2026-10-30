@@ -41,11 +41,15 @@ def _(plt):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Lessons 🤖
+    # How the regressions are solved: OLS from scratch 🤖
 
-    This is Claude's teaching notebook. Each lesson builds the functions for one step of the project, using examples small enough to check by hand. You copy what you need into `regression.py` / `factors.py`, and then I review your version.
+    *Companion to `main.py`. Code: `src/ols.py`. Used by every regression in the project: the vol shock (`factors_nb.py`) and the industry sensitivities (`estimation_nb.py`).*
 
-    # Lesson 1: OLS from scratch
+    **Bottom line**
+
+    - **OLS (ordinary least squares)** picks the coefficients that make the squared misses as small as possible.
+    - The best coefficients solve the **normal equations** X'X b = X'y. The project solves them with its own **Gaussian elimination** (`solve` in `ols.py`), not a library estimator; NumPy is used only for fast array math.
+    - Every result is checked against NumPy's `lstsq` answer key, and fitting all 49 industries at once gives exactly the same answer as fitting them one at a time.
 
     ## 0. How to read this notebook
 
@@ -999,21 +1003,20 @@ def _(X_sim, np, ols):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 7. What to take into your project
+    ## 7. Where this is used in the project
 
-    **Into `src/regression.py`:** `add_intercept`, `solve`, `ols` and `residuals`, with the same names and inputs. Later lessons will call them like this:
+    The functions above live in `src/ols.py` with the same names and inputs:
 
-    - `ols(X, y)`:
-      - `X` is a NumPy array with one row per day and one column per regressor, column of 1s included.
-      - `y` is either one series, shape (days,), or all industries, shape (days, 49).
-      - It returns `b`, with one row per column of `X`.
-    - Coming from pandas, pass `.to_numpy()`. Plain arrays keep the bootstrap fast.
+    - `add_intercept(x)`: puts the column of 1s in front of the regressors.
+    - `solve(A, c)`: Gaussian elimination with partial pivoting. Raises an error if the columns of X are linearly dependent (no unique answer).
+    - `ols(X, y)`: solves X'X b = X'y. `y` can be one series, shape (days,), or all industries at once, shape (days, 49); `b` has one row per column of X.
+    - `residuals(X, y, b)`: the misses, actual minus predicted.
 
-    **Into `src/math_nb.py`:**
-    - Your plain-Python `transpose`, `dot_prod` and `matrix_mult`, each with an `np.allclose` check against `.T` or `@`, as in §3.
-    - Then explain the normal equations and `solve` in your own words, and run them on a toy example.
+    **Where they're called:**
 
-    **Then send it over.** I'll review `regression.py` and `math_nb.py`, fix what's wrong and explain why, then ask 2–3 quick questions before Lesson 2 (the Gram-Schmidt vol shock).
+    - **Vol shock** (`factors.vol_shock`): `ols` of ΔVIX on [1, Mkt-RF]; the residuals are the vol shock.
+    - **Industry sensitivities** (`estimation.fit_industries`): `ols` of all 49 industries on [1, Mkt-RF, vol shock] in one call, giving α, β and γ.
+    - **Bootstrap and Monte Carlo:** the same `ols`, run thousands of times on resampled or simulated data.
     """)
     return
 

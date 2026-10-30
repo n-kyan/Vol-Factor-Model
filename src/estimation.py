@@ -97,3 +97,34 @@ def se_interval(estimate: np.ndarray, draws: np.ndarray):
     # (Hall, Horowitz & Jing 1995). Assumes the draws are roughly bell-shaped; checked by histogram.
     se = draws.std(axis=0, ddof=1)
     return estimate - Z_95 * se, estimate + Z_95 * se, se
+
+
+def regime_interval_table(returns, mkt, dvix, high, industries) -> pd.DataFrame:
+    """Steps 4 + 6 in one table: estimate, 95% interval and significance per industry.
+
+    Statistics: gamma low, gamma high, high - low, |high| - |low|. Values in % per VIX point.
+    Columns: "<stat>", "<stat> lo", "<stat> hi", "<stat> t" (estimate / bootstrap SE),
+    "<stat> sig" (interval excludes 0, the same as |t| > 1.96).
+    """
+    b_low, b_high = fit_by_regime(returns, mkt, dvix, high)
+    draws_low, draws_high = bootstrap_gammas(returns, mkt, dvix, high)
+    g_low = b_low[2]
+    g_high = b_high[2]
+    stats = {
+        "gamma low": (g_low, draws_low),
+        "gamma high": (g_high, draws_high),
+        "high - low": (g_high - g_low, draws_high - draws_low),
+        "|high| - |low|": (np.abs(g_high) - np.abs(g_low), np.abs(draws_high) - np.abs(draws_low)),
+    }
+    table = pd.DataFrame(index=industries)
+    for name in stats:
+        estimate, draws = stats[name]
+        lower, upper, se = se_interval(estimate, draws)
+        table[name] = estimate * 100
+        table[f"{name} lo"] = lower * 100
+        table[f"{name} hi"] = upper * 100
+        # Why bootstrap SE in the t-stat: the textbook SE assumes independent, equally noisy days,
+        # which crisis days are not, so it would come out too small and t too big.
+        table[f"{name} t"] = estimate / se
+        table[f"{name} sig"] = (lower > 0) | (upper < 0)
+    return table
