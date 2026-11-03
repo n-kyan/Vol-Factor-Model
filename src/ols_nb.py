@@ -400,7 +400,7 @@ def _(mo):
     - $u = [3, 1]$ and $v = [-1, 3]$: $\;u \cdot v = 3\cdot(-1) + 1\cdot3 = 0$. They form a right angle.
     - $u = [3, 1]$ and $w = [1, 2]$: $\;u \cdot w = 3\cdot1 + 1\cdot2 = 5$. They don't.
 
-    The toy data has 5 points, so its vectors ($y$, $e$, each column of $X$) have 5 entries. That makes them arrows in 5 dimensions, which nobody can draw. So in 5 dimensions, "dot product = 0" isn't a test for perpendicular: it **is** the definition of perpendicular. Same for 9,228 dimensions, one per trading day in the project.
+    The toy data has 5 points, so its vectors ($y$, $e$, each column of $X$) have 5 entries. That makes them arrows in 5 dimensions, which nobody can draw. So in 5 dimensions, "dot product = 0" isn't a test for perpendicular: it **is** the definition of perpendicular. Same for 9,249 dimensions, one per trading day in the project.
     """)
     return
 
@@ -640,7 +640,7 @@ def _(mo):
     = \begin{bmatrix} 30.1 \\ 110.2 \end{bmatrix}
     $$
 
-    $X^\top X$ is (columns × columns), so it's tiny no matter how much data there is. In the project it's 3 × 3, even with 9,228 days. All the heavy lifting happens while building it. After that, solving is cheap.
+    $X^\top X$ is (columns × columns), so it's tiny no matter how much data there is. In the project it's 3 × 3, even with 9,249 days. All the heavy lifting happens while building it. After that, solving is cheap.
 
     ### Step 6: solve it by hand
 

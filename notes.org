@@ -1,0 +1,15 @@
+Main.py
+---
+* Minimum Checklist, in order: [1/4]
+
+- [X] Fix the indentation bug so the top cell displays. I can do it now in seconds if you save and close main.py in Emacs first.
+- [ ] Rewrite the AI disclaimer. It currently says "I will be writing all of the code myself," which isn't true anymore. Shown to a Janus Henderson quant, that's the one thing that could actually hurt you. Something true: Claude wrote most of the code and first drafts; you designed the question and hypotheses, made the decisions, and are working through understanding every part.
+- [ ] Delete test_func("poopie") from factors.py, since it prints on every run.
+- [ ] Make it easy to show: have it open on your laptop. GitHub won't display a rendered marimo notebook, so a repo link isn't enough. I can export it to a standalone HTML file you can open with no setup.
+
+* Notes
+- need to get the numbers that support the conclusion to each hypothesis. I prefer tables to anythig else and i think that marimo has a table UI widget.
+- Need to change the data to truly being the range of 1990 to 2026. i know it will keep changing a tiniy bit until 2027 but i am ok with that.
+- Each of the bullets for the methodology overview should follow a phase from the plan we used to build the project which should be associated with its own nb file, threfore each these should describe a process that is owned by a specific notebook.
+- I am wondering if the table in the accoridan that shows the other notebooks should be a widget table rather than a plain markdown table.
+- 

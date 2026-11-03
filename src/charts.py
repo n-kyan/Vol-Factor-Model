@@ -105,7 +105,7 @@ def gamma_intervals(table, names):
     return fig
 
 
-def h2_scatter(table):
+def h1_scatter(table):
     """|gamma low| vs |gamma high| per industry; orange = |high| - |low| interval excludes 0."""
     abs_low = table["gamma low"].abs()
     abs_high = table["gamma high"].abs()
@@ -157,3 +157,20 @@ def altair_scatter(df, x, y, x_title, y_title, color_field, color_domain, color_
     if len(layers) == 1:
         return points.properties(width=520, height=420)
     return alt.layer(*layers).properties(width=520, height=420)
+
+
+
+def gt_table(df, title, subtitle=None, source=None):
+    """A presentation table (great_tables): title, optional subtitle and source note, one shared style.
+
+    The DataFrame index becomes the row labels. Returns the GT object, so a cell can chain more
+    methods (tab_spanner, tab_footnote, fmt_percent, ...).
+    Why great_tables, not mo.ui.table: these tables are read, not explored, so they need titles and
+    footnotes rather than search, sorting and paging.
+    """
+    from great_tables import GT
+
+    table = GT(df.reset_index(names="row"), rowname_col="row").tab_header(title=title, subtitle=subtitle)
+    if source is not None:
+        table = table.tab_source_note(source)
+    return table.opt_stylize(style=1, color="gray")

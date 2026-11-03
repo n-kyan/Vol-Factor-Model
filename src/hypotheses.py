@@ -1,4 +1,4 @@
-"""Step 7: evaluate H1 and H2 against the chance baseline."""
+"""Step 7: evaluate H1 (magnitude) and H2 (direction) against the chance baseline."""
 
 from math import comb
 
@@ -21,30 +21,8 @@ def significant(lower: np.ndarray, upper: np.ndarray) -> np.ndarray:
     return (lower > 0) | (upper < 0)
 
 
-def evaluate_h1(g_low, g_high, sig_low, sig_high, industries):
-    """H1: same gamma sign in both regimes, judged only where gamma is significant in BOTH.
-
-    Returns (table_2x2, qualifying), where qualifying lists the industries significant in both
-    regimes with their signs.
-    """
-    table = pd.DataFrame(
-        {
-            "significant at high VIX": [int((sig_low & sig_high).sum()), int((~sig_low & sig_high).sum())],
-            "not significant at high VIX": [int((sig_low & ~sig_high).sum()), int((~sig_low & ~sig_high).sum())],
-        },
-        index=["significant at low VIX", "not significant at low VIX"],
-    )
-    both = sig_low & sig_high
-    qualifying = pd.DataFrame(
-        {"sign low": np.sign(g_low[both]), "sign high": np.sign(g_high[both])},
-        index=np.array(industries)[both],
-    )
-    qualifying["same sign"] = qualifying["sign low"] == qualifying["sign high"]
-    return table, qualifying
-
-
-def evaluate_h2(g_low, g_high, absdiff_lower, absdiff_upper):
-    """H2: |gamma| bigger at high VIX. Two pre-set measures across all industries.
+def evaluate_h1(g_low, g_high, absdiff_lower, absdiff_upper):
+    """H1, magnitude: |gamma| bigger at high VIX. Two pre-set measures across all industries.
 
     1. Count of |gamma_high| > |gamma_low|, vs. half expected if regimes didn't differ.
     2. Count of |high| - |low| intervals excluding 0, split by direction.
@@ -71,8 +49,30 @@ def evaluate_h2(g_low, g_high, absdiff_lower, absdiff_upper):
     }
 
 
+def evaluate_h2(g_low, g_high, sig_low, sig_high, industries):
+    """H2, direction: same gamma sign in both regimes, judged only where gamma is significant in BOTH.
+
+    Returns (table_2x2, qualifying), where qualifying lists the industries significant in both
+    regimes with their signs.
+    """
+    table = pd.DataFrame(
+        {
+            "significant at high VIX": [int((sig_low & sig_high).sum()), int((~sig_low & sig_high).sum())],
+            "not significant at high VIX": [int((sig_low & ~sig_high).sum()), int((~sig_low & ~sig_high).sum())],
+        },
+        index=["significant at low VIX", "not significant at low VIX"],
+    )
+    both = sig_low & sig_high
+    qualifying = pd.DataFrame(
+        {"sign low": np.sign(g_low[both]), "sign high": np.sign(g_high[both])},
+        index=np.array(industries)[both],
+    )
+    qualifying["same sign"] = qualifying["sign low"] == qualifying["sign high"]
+    return table, qualifying
+
+
 def significance_counts(sig_low, sig_high):
-    """Supporting context for H2 (descriptive, not a pre-set test): significant gammas per regime."""
+    """Supporting context for H1 (descriptive, not a pre-set test): significant gammas per regime."""
     n = len(sig_low)
     return pd.DataFrame(
         {

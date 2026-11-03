@@ -99,8 +99,8 @@ Alternatives named in explanations are for understanding only. The deliverable's
 
 **Hypotheses**
 
-- **H1, direction:** each industry's vol-shock sensitivity has the same sign in low- and high-VIX periods. Judged only for industries whose confidence interval excludes zero (in both regimes).
-- **H2, magnitude:** vol-shock sensitivities are larger in absolute value in high-VIX periods.
+- **H1, magnitude:** vol-shock sensitivities are larger in absolute value in high-VIX periods.
+- **H2, direction:** each industry's vol-shock sensitivity has the same sign in low- and high-VIX periods. Judged only for industries whose confidence interval excludes zero (in both regimes).
 - Judge both by the overall pattern across the 49 industries, not individual industries. At 95% confidence, about 2–3 industries will look significant by chance.
 
 **Data (daily, 1990 to latest available)**
@@ -130,9 +130,11 @@ Alternatives named in explanations are for understanding only. The deliverable's
 - **Block bootstrap:** crisis days cluster, so they aren't independent.
 - **Market first in Gram-Schmidt:** the question is about vol shocks *beyond* market moves.
 - **Gram-Schmidt within each regime:** γ is identical either way (the regression includes the market), so the hypothesis tests don't depend on this. Within-regime keeps each regime's factors uncorrelated, so β is that regime's plain market beta and the risk breakdown adds up cleanly. It also yields each regime's market–VIX relationship as a result in itself.
-- **Block length 20 days, SE intervals (decided 2026-10-28):** too-short blocks cut crisis runs apart (bias ~ 1/ℓ); too-long blocks leave few distinct blocks (noise ~ ℓ/n). Balancing them gives ℓ ∝ n^(1/3) for estimating a variance (Hall, Horowitz & Jing 1995); 9,228^(1/3) ≈ 21. So intervals are estimate ± 1.96 × bootstrap SE, the case the rule is optimal for. Percentile intervals would need ~n^(1/5) ≈ 6-day blocks instead. The rule gives a rate, not the constant. The user still needs to be able to explain this decision in their own words in the understanding phase.
-- **H1 kept as written after seeing the data (2026-10-28):** only 2 industries (Softw, Chips) have γ intervals excluding 0 in both regimes, so H1 is reported as untestable rather than loosened. Changing the test after seeing results would be data snooping. Step 7 shows the 2×2 significance table (low sig / high sig) to explain why.
-- **Significant-industry count per regime is supporting context for H2 (2026-10-28):** 6 industries with significant γ at low VIX vs. 20 at high VIX. Not a pre-set test, so it's reported as descriptive only.
+- **Block length 20 days, SE intervals (decided 2026-10-28):** too-short blocks cut crisis runs apart (bias ~ 1/ℓ); too-long blocks leave few distinct blocks (noise ~ ℓ/n). Balancing them gives ℓ ∝ n^(1/3) for estimating a variance (Hall, Horowitz & Jing 1995); 9,249^(1/3) ≈ 21. So intervals are estimate ± 1.96 × bootstrap SE, the case the rule is optimal for. Percentile intervals would need ~n^(1/5) ≈ 6-day blocks instead. The rule gives a rate, not the constant. The user still needs to be able to explain this decision in their own words in the understanding phase.
+- **H2 (direction) kept as written after seeing the data (2026-10-28):** only 2 industries (Softw, Chips) have γ intervals excluding 0 in both regimes, so H2 is reported as untestable rather than loosened. Changing the test after seeing results would be data snooping. Step 7 shows the 2×2 significance table (low sig / high sig) to explain why.
+- **Significant-industry count per regime is supporting context for H1 (2026-10-28):** 5 industries with significant γ at low VIX vs. 20 at high VIX (6 vs. 20 before the 2026-11-02 data refresh). Not a pre-set test, so it's reported as descriptive only.
+- **Hypotheses renumbered (2026-11-02):** H1 = magnitude, H2 = direction, to match the order the user wrote them in `main.py`. Labels only; both tests are unchanged.
+- **Sample end capped at 2026-12-31, data refreshed (2026-11-02):** `build_data(end=...)` so the sample covers 1990–2026 and stops there, matching the regime-median window. Refreshing the Ken French files extended the sample from 2026-08-31 to 2026-09-30 (9,228 → 9,249 days). Results before vs. after: H1 count 33 → 34 of 49 (chance ≈ 1.1% → 0.5%); significantly larger vs. smaller unchanged at 8 vs. 0; H2 still 2 qualifying industries (Softw, Chips); significant γ's 6 → 5 at low VIX, 20 at high. No conclusion changed.
 - **Value- vs. equal-weighted:** committed to value-weighted, so industries are built the same way as Rm-Rf (also value-weighted). Load the value-weighted section of the file.
 
 **Open decisions (decide when that step is reached)**
@@ -141,19 +143,19 @@ Alternatives named in explanations are for understanding only. The deliverable's
 
 **Known caveats**
 
-- If industries respond to percentage VIX moves, per-point sensitivity will mechanically shrink at high VIX. This biases against H2; address in post-project analysis.
+- If industries respond to percentage VIX moves, per-point sensitivity will mechanically shrink at high VIX. This biases against H1; address in post-project analysis.
 - Rm-Rf covers all CRSP US firms, while VIX is based on S&P 500 options. Close, but not identical.
 - High-VIX days come from a few episodes, so the effective sample is smaller than the day count.
 
 **Post-project analysis ideas**
 
 - Compare point changes against percentage or log VIX changes, depending on what the results suggest.
-  - Possible tool: compare the high-/low-regime SD ratio of ΔVIX vs. log VIX changes. If log changes have a similar SD in both regimes while point changes don't, VIX moves scale with its level, which is the caveat that biases against H2.
+  - Possible tool: compare the high-/low-regime SD ratio of ΔVIX vs. log VIX changes. If log changes have a similar SD in both regimes while point changes don't, VIX moves scale with its level, which is the caveat that biases against H1.
 - Block-length sensitivity: rerun the bootstrap with shorter and longer blocks (e.g. 10 and 60 days) and check whether the H1/H2 conclusions change.
 
 **Back pocket (add only if earned)**
 
-- **Covariance matrix + optimization:** earns its place if H2 holds strongly, since a risk model using average sensitivities would understate stress risk.
+- **Covariance matrix + optimization:** earns its place if H1 holds strongly, since a risk model using average sensitivities would understate stress risk.
 - **Cross-sectional regression:** only if asking whether vol-shock exposure relates to average returns (drifts toward returns).
 - **Factor normalization:** no identified need.
 

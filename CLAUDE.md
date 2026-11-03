@@ -37,7 +37,7 @@ There are no tests, lint config, or CI.
 - `src/ols.py`: hand-written `solve` (Gaussian elimination) and `ols`. `y` can be (days, 49) to fit all industries in one call.
 - `src/estimation.py`: `fit_industries` (Step 3) and `fit_by_regime` (Step 4). The vol shock is rebuilt inside each fit, so a regime fit uses that regime's own Gram-Schmidt residual. Step 6: `bootstrap_gammas` (moving-block bootstrap of the full timeline, 20-day blocks, 1,000 resamples), `se_interval` (estimate ± 1.96 × bootstrap SE), and `regime_interval_table` (estimates, intervals and significance for every statistic in one table).
 - `src/validation.py`: Step 5 Monte Carlo. Real factors and regime days, fake industries with known β/γ (γ_high = 1.5 × γ_low) and regime-sized noise; `monte_carlo_coverage` runs the full pipeline 100 times (~1 min).
-- `src/hypotheses.py`: Step 7. `evaluate_h1` (2×2 significance table), `evaluate_h2` (two pre-set counts with binomial chance baselines), `significance_counts` (descriptive context for H2).
+- `src/hypotheses.py`: Step 7. `evaluate_h1` (magnitude: two pre-set counts with binomial chance baselines), `evaluate_h2` (direction: 2×2 significance table), `significance_counts` (descriptive context for H1). Numbering swapped 2026-11-02 (labels only).
 - `src/workbench.py`: Claude's build-phase notebook, superseded by the companion notebooks.
 - `src/factors.py`: factor and regime construction.
   - `dvix`: daily VIX change in points.

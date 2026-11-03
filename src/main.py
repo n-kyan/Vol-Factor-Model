@@ -10,8 +10,15 @@ def _():
     import numpy as np
     import pandas as pd
 
-    from charts import BLUE, ORANGE, altair_scatter, gamma_intervals, vix_timeline
-    from stats import gamma_summary
+    from charts import (
+        BLUE,
+        ORANGE,
+        altair_scatter,
+        gamma_intervals,
+        result_table,
+        vix_timeline,
+    )
+    from stats import gamma_summary, tail_counts
     from data import INDUSTRY_NAMES, build_data, load_vix_table
     from estimation import fit_industries, regime_interval_table
     from factors import regime_threshold
@@ -38,92 +45,69 @@ def _():
         pd,
         regime_interval_table,
         regime_threshold,
+        result_table,
         significance_counts,
+        tail_counts,
         vix_timeline,
     )
 
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(r"""
+    mo.vstack(
+        [
+            mo.md(r"""
     # Factor Modeling with Volatility
     Kyan Nelson n.kyan@outlook.com 10/15/26
+    """),
+            mo.accordion(
+                {
+                    "Running the project and AI disclaimer": mo.md(r"""
+    This project is managed using uv. To run the project use `uv run marimo run
+    src/main.py`.
 
-    This project is managed using uv. To run the project use 'uv run marimo run
-    src/main.py'.
+    AI Disclaimer: I will be using Claude throughout this process to:
+    1. Explain concepts and math
+    2. Research available datasets
+    3. Correcting and explaning syntax
+    4. Write boilerplate and skeleton code
 
-    AI Disclaimer: I will be using Claude throughout this process for educational
-    purposes and for understanding what data is readily available to me and how to get
-    it. I will be writing all of the code and documentation myself. I will do my best to
-    specify where AI was used with this symbol 🤖.
-    """)
+    All explanations and documentation will be written myself. Any exceptions will be
+    labled with this symbol 🤖.
+    """),
+                }
+            ),
+        ]
+    )
     return
 
 
 @app.cell(hide_code=True)
-def _(h1_table, h2, mc, mo, sig_counts):
-    _coverage = []
-    for _key in mc["covered"]:
-        _coverage.append(mc["covered"][_key].mean())
+def _(h1_evidence, h2_table, mo, result_table):
     mo.vstack(
         [
             mo.md(r"""
-    ## Driving Question
+    How do US industries react to changes in the VIX beyond what market moves explain
+    (Vol-shocks), and is the relationship dependent on the level of the VIX?
 
-    #### How do US industries react to changes in the VIX beyond what market moves explain, and is the relationship dependent on the level of the VIX?
+    **Hypothesis**
+    1. US industries are more sensitive to changes in Vol-shocks when the VIX is high
+       compared to when it is low.
+    2. The direction of the relationship persists across VIX regimes.
+
+    **Conclusion**
+
+    H1, larger sensitivity at high VIX: supported. 🤖
     """),
-            mo.callout(
-                mo.md(r"""
-            **Hypothesis**
-            1. US industries are more sensitive to changes in the VIX when the VIX is
-               high compared to when it is low.
-            2. US industies' VIX sensitivity preserves the same sign regardless of VIX
-               regime.  **Vol-shock sensitivity is much stronger in stressed markets.**
-               On calm days a surprise VIX jump barely moves most industries. On
-               high-VIX days a clear pattern appears: oil, agriculture, mining, consumer
-               staples and healthcare fall, while computers, software and electronic
-               equipment rise.
+            result_table(h1_evidence),
+            mo.md(r"""
+    H2, same sign in both regimes: can't be judged as written.
     """),
-                kind="success",
-            ),
-            mo.hstack(
-                [
-                    mo.stat(
-                        value=f"{h2['|high| > |low|']} of {h2['industries']}",
-                        label="industries more sensitive at high VIX",
-                        caption=f"luck alone: ~{h2['expected by chance']:.1f}",
-                        bordered=True,
-                    ),
-                    mo.stat(
-                        value=f"{h2['interval says bigger at high VIX']} vs {h2['interval says smaller at high VIX']}",
-                        label="significantly larger vs. smaller",
-                        caption=f"luck alone: ~{h2['expected by chance (each direction)']:.1f} each",
-                        bordered=True,
-                    ),
-                    mo.stat(
-                        value=f"{int(sig_counts['significant gammas'].iloc[1])} vs {int(sig_counts['significant gammas'].iloc[0])}",
-                        label="clearly sensitive industries, high vs. low VIX",
-                        caption=f"luck alone: ~{sig_counts['expected by chance'].iloc[0]:.1f} each",
-                        bordered=True,
-                    ),
-                    mo.stat(
-                        value=f"{min(_coverage):.1%}–{max(_coverage):.1%}",
-                        label="95% intervals containing the truth",
-                        caption="Monte Carlo check, target 95%",
-                        bordered=True,
-                    ),
-                ],
-                widths="equal",
-            ),
-            mo.md(rf"""
-    - **H2, larger sensitivity at high VIX: supported.**
-    - **H1, same sign in both regimes: can't be judged as written.** Only
-      {int(h1_table.iloc[0, 0])} industries (software and electronic equipment) are
-      clearly non-zero in both regimes. Both keep their sign, but that is too few to
-      call a pattern.
-    - **Main caveats:** industries move together, so they are not 49 independent pieces
-      of evidence. High-VIX days come from a handful of crisis episodes. Measuring VIX
-      in points, not percentages, if anything works *against* the high-VIX finding.
+            result_table(h2_table),
+            mo.md(r"""
+    - **Main caveats:** Each of the 49 industries cannot be assumed to be independent
+      pieces of evidence. I chose to measure the VIX in points for simplicity and to
+      follow the precedent set by the units of the Vega Greek in options pricing.
     """),
         ]
     )
@@ -132,40 +116,20 @@ def _(h1_table, h2, mc, mo, sig_counts):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.vstack(
-        [
-            mo.md(r"""
-    ## How the analysis works 🤖
+    mo.md(r"""
+    ## Methodology Overview
 
-    1. **Data:** daily returns for 49 industries, the market and VIX, 1990–2026.
-    2. **Vol shock:** the part of each day's VIX change that the market's move doesn't
-       explain.
-    3. **Sensitivities:** for each industry, regress its daily return on the market and
-       the vol shock, separately for low- and high-VIX days. **γ (gamma)** is the
-       industry's % move per 1-point vol shock.
-    4. **Confidence intervals:** a block bootstrap, checked by Monte Carlo simulation.
-    5. **Hypotheses:** judged across all 49 industries against what luck alone would
-       produce.
+    | Phase | What it does | Notebook | Code |
+    |---|---|---|---|
+    | 1. Data | Daily returns for 49 industries, the market and VIX, 1990–2026; splits days into low- and high-VIX regimes. | `data_nb.py` | `data.py` |
+    | 2. Vol shock | The part of each day's VIX change that the market's move doesn't explain. | `factors_nb.py` | `factors.py` |
+    | 3. Estimation | Regresses each industry's daily return on the market and the vol shock, separately for low- and high-VIX days; **γ (gamma)** is the industry's % move per 1-point vol shock. Confidence intervals come from a block bootstrap. | `estimation_nb.py` (the regression math: `ols_nb.py`) | `estimation.py`, `ols.py` |
+    | 4. Validation | A Monte Carlo test that the confidence intervals contain the truth 95% of the time. | `validation_nb.py` | `validation.py` |
+    | 5. Hypotheses | Judges H1 and H2 across all 49 industries against what luck alone would produce. | `hypotheses_nb.py` | `hypotheses.py` |
 
-    Each section below gives one phase's takeaway. Every phase has a companion notebook
-    with the full explanation.
-    """),
-            mo.accordion(
-                {
-                    "Companion notebooks: every decision, its reasoning, and more tables and charts": mo.md(r"""
-    | Phase | Open with | Code |
-    |---|---|---|
-    | 1. Data | `uv run marimo run src/data_nb.py` | `data.py` |
-    | 2. Vol shock | `uv run marimo run src/factors_nb.py` | `factors.py` |
-    | How the regressions are solved | `uv run marimo run src/ols_nb.py` | `ols.py` |
-    | 3. Sensitivities and 4. confidence intervals | `uv run marimo run src/estimation_nb.py` | `estimation.py` |
-    | 4. Monte Carlo check | `uv run marimo run src/validation_nb.py` | `validation.py` |
-    | 5. Hypotheses | `uv run marimo run src/hypotheses_nb.py` | `hypotheses.py` |
-    """),
-                }
-            ),
-        ]
-    )
+    Each phase has its own section below with its main takeaway, and its own notebook
+    that explains it in detail. Open one with `uv run marimo run src/<notebook>`.
+    """)
     return
 
 
@@ -183,7 +147,8 @@ def _(build_data, load_vix_table, regime_threshold):
 
 
 @app.cell(hide_code=True)
-def _(factors, mo, returns, threshold, vix_full, vix_timeline):
+def _(factors, mo, returns, tail_counts, threshold, vix_full, vix_timeline):
+    _tails = tail_counts(factors["Mkt-RF"], [4]).iloc[0]
     mo.vstack(
         [
             mo.md(rf"""
@@ -198,7 +163,8 @@ def _(factors, mo, returns, threshold, vix_full, vix_timeline):
       {(~factors["high"]).mean():.0%} low / {factors["high"].mean():.0%} high. Using
       yesterday's close keeps the flag from being caused by the day's own shock.
     - Daily moves have **fat tails**: market days beyond 4 standard deviations happened
-      55 times; a bell curve expects fewer than 1. So confidence intervals come from a
+      {int(_tails["actual days"])} times; a bell curve expects
+      {_tails["normal distribution expects"]:.1f}. So confidence intervals come from a
       bootstrap, not textbook formulas.
     """),
             vix_timeline(vix_full.loc["1990":], threshold),
@@ -224,6 +190,7 @@ def _(dvix, high, mkt, mo, np, pd):
             "correlation: market vs. VIX change": f"{_corr:.2f}",
             "share of VIX change the market explains": f"{_corr**2:.0%}",
         }
+    _share = np.corrcoef(mkt, dvix)[0, 1] ** 2
     mo.vstack(
         [
             mo.md(r"""
@@ -237,8 +204,9 @@ def _(dvix, high, mkt, mo, np, pd):
     market first).
     """),
             pd.DataFrame(_rows).T,
-            mo.md(r"""
-    The market explains about 60% of daily VIX changes. The vol shock is the other ~40%.
+            mo.md(rf"""
+    The market explains about {_share:.0%} of daily VIX changes. The vol shock is the
+    other {1 - _share:.0%}.
     """),
         ]
     )
@@ -258,22 +226,27 @@ def _(gamma_intervals, gamma_table, industry_labels, mo):
     mo.vstack(
         [
             mo.md(r"""
-    ## 3. Sensitivities by regime 🤖
+    ## 3. Estimation: sensitivities by regime 🤖
 
     For each industry and each regime: daily excess return = α + β × market + **γ × vol
     shock** + noise. **γ** is the industry's % move for a 1-point vol shock (e.g. γ =
     −0.10 means a 1-point surprise VIX jump goes with the industry 0.10% lower that
     day). Bars are 95% confidence intervals.
+
+    **How the intervals are built.** A **block bootstrap**: rebuild 1,000 alternative
+    histories from random 20-day stretches of the real timeline, re-estimate every γ on
+    each, and use the spread of those 1,000 estimates (interval = estimate ± 1.96 × that
+    spread). Keeping 20-day stretches intact preserves the way crisis days cluster.
     """),
             gamma_intervals(gamma_table, industry_labels),
-            mo.md(r"""
+            mo.md(rf"""
     - **Low-VIX days (blue):** most γ's sit near zero with intervals crossing it. On
       calm days, vol shocks barely move industries.
     - **High-VIX days (orange):** a clear pattern. Oil, agriculture, mining, consumer
       staples and healthcare fall on vol shocks; computers, software, electronic
       equipment and measuring equipment rise.
-    - **Right panel:** the high-minus-low difference is clearly non-zero for 9
-      industries.
+    - **Right panel:** the high-minus-low difference is clearly non-zero for
+      {int(gamma_table["high - low sig"].sum())} industries.
     """),
         ]
     )
@@ -283,12 +256,7 @@ def _(gamma_intervals, gamma_table, industry_labels, mo):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 4. Are the confidence intervals trustworthy? 🤖
-
-    **How they are built.** A **block bootstrap**: rebuild 1,000 alternative histories
-    from random 20-day stretches of the real timeline, re-estimate every γ on each, and
-    use the spread of those 1,000 estimates (interval = estimate ± 1.96 × that
-    spread). Keeping 20-day stretches intact preserves the way crisis days cluster.
+    ## 4. Validation: are the confidence intervals trustworthy? 🤖
 
     **How they were checked.** A **Monte Carlo test**: keep the real market, VIX and
     regime days, invent 49 industries with *known* γ's (and a known 1.5× high-VIX
@@ -353,27 +321,52 @@ def _(mc, mo, pd):
 
 
 @app.cell
-def _(evaluate_h1, evaluate_h2, gamma_table, returns, significance_counts):
+def _(evaluate_h1, evaluate_h2, gamma_table, pd, returns, significance_counts):
     _g_low = gamma_table["gamma low"].to_numpy()
     _g_high = gamma_table["gamma high"].to_numpy()
     _sig_low = gamma_table["gamma low sig"].to_numpy()
     _sig_high = gamma_table["gamma high sig"].to_numpy()
-    h1_table, h1_qualifying = evaluate_h1(
-        _g_low, _g_high, _sig_low, _sig_high, returns.columns
-    )
-    h2 = evaluate_h2(
+    h1 = evaluate_h1(
         _g_low,
         _g_high,
         gamma_table["|high| - |low| lo"].to_numpy(),
         gamma_table["|high| - |low| hi"].to_numpy(),
     )
+    h2_table, h2_qualifying = evaluate_h2(
+        _g_low, _g_high, _sig_low, _sig_high, returns.columns
+    )
     sig_counts = significance_counts(_sig_low, _sig_high)
-    return h1_table, h2, sig_counts
+    # Why built here: the top of the notebook and section 5 show this same table
+    h1_evidence = pd.DataFrame(
+        {
+            "result": [
+                f"{h1['|high| > |low|']} of {h1['industries']}",
+                str(h1["interval says bigger at high VIX"]),
+                str(h1["interval says smaller at high VIX"]),
+            ],
+            "expected from luck alone": [
+                f"{h1['expected by chance']:.1f}",
+                f"{h1['expected by chance (each direction)']:.1f}",
+                f"{h1['expected by chance (each direction)']:.1f}",
+            ],
+            "chance of a result this strong from luck": [
+                f"{h1['chance of this many or more']:.1%}",
+                f"{h1['chance of this many bigger or more']:.4%}",
+                "—",
+            ],
+        },
+        index=[
+            "industries with larger |γ| at high VIX",
+            "…significantly larger",
+            "…significantly smaller",
+        ],
+    )
+    return h1, h1_evidence, h2_qualifying, h2_table, sig_counts
 
 
 @app.cell(hide_code=True)
 def _(BLUE, ORANGE, altair_scatter, gamma_table, industry_labels, mo, pd):
-    h2_points = pd.DataFrame(
+    h1_points = pd.DataFrame(
         {
             "industry": industry_labels,
             "code": gamma_table.index,
@@ -384,12 +377,12 @@ def _(BLUE, ORANGE, altair_scatter, gamma_table, industry_labels, mo, pd):
             .to_numpy(),
         }
     )
-    h2_points["label"] = h2_points["industry"].where(
+    h1_points["label"] = h1_points["industry"].where(
         gamma_table["|high| - |low| sig"].to_numpy(), ""
     )
-    h2_chart = mo.ui.altair_chart(
+    h1_chart = mo.ui.altair_chart(
         altair_scatter(
-            h2_points,
+            h1_points,
             x="|γ| low-VIX days",
             y="|γ| high-VIX days",
             x_title="|γ| on low-VIX days (% per point)",
@@ -402,46 +395,26 @@ def _(BLUE, ORANGE, altair_scatter, gamma_table, industry_labels, mo, pd):
             label_field="label",
         )
     )
-    return h2_chart, h2_points
+    return h1_chart, h1_points
 
 
 @app.cell(hide_code=True)
 def _(
+    INDUSTRY_NAMES,
     gamma_summary,
     gamma_table,
-    h1_table,
-    h2,
-    h2_chart,
-    h2_points,
+    h1,
+    h1_chart,
+    h1_evidence,
+    h1_points,
+    h2_qualifying,
+    h2_table,
     industry_labels,
     mo,
     pd,
+    result_table,
     sig_counts,
 ):
-    _h2_table = pd.DataFrame(
-        {
-            "result": [
-                f"{h2['|high| > |low|']} of {h2['industries']}",
-                str(h2["interval says bigger at high VIX"]),
-                str(h2["interval says smaller at high VIX"]),
-            ],
-            "expected from luck alone": [
-                f"{h2['expected by chance']:.1f}",
-                f"{h2['expected by chance (each direction)']:.1f}",
-                f"{h2['expected by chance (each direction)']:.1f}",
-            ],
-            "chance of a result this strong from luck": [
-                f"{h2['chance of this many or more']:.1%}",
-                f"{h2['chance of this many bigger or more']:.4%}",
-                "—",
-            ],
-        },
-        index=[
-            "industries with larger |γ| at high VIX",
-            "…significantly larger",
-            "…significantly smaller",
-        ],
-    )
     _context = pd.DataFrame(
         {
             "industries with γ clearly non-zero": sig_counts["significant gammas"],
@@ -451,9 +424,12 @@ def _(
         }
     )
     # Why the table follows the chart: dragging a box over points narrows the table to those industries
-    _selected_codes = h2_chart.apply_selection(h2_points)["code"]
+    _selected_codes = h1_chart.apply_selection(h1_points)["code"]
     _summary = gamma_summary(gamma_table, industry_labels)
     _summary = _summary[_summary["code"].isin(_selected_codes)]
+    _qualifying_names = []
+    for _code in h2_qualifying.index:
+        _qualifying_names.append(INDUSTRY_NAMES[_code])
     mo.vstack(
         [
             mo.md(r"""
@@ -463,13 +439,14 @@ def _(
     against what luck alone would produce (at 95% confidence, about 2–3 of 49 industries
     look significant by chance).
 
-    ### H2, magnitude: sensitivities are larger in high-VIX periods → **supported**
+    ### H1, magnitude: sensitivities are larger in high-VIX periods → **supported**
     """),
-            _h2_table,
-            mo.md(r"""
+            result_table(h1_evidence),
+            mo.md(rf"""
     **Each dot is an industry.** Dots above the dashed line are more sensitive on
-    high-VIX days; the 8 significantly larger ones are named. Hover any dot for its
-    name; **drag a box over dots** to narrow the table below to those industries.
+    high-VIX days; the {h1["interval says bigger at high VIX"]} significantly larger
+    ones are named. Hover any dot for its name; **drag a box over dots** to narrow the
+    table below to those industries.
 
     In the table, **t** is the estimate divided by its bootstrap standard error: how
     many standard errors it sits from zero. |t| > 1.96 is the same test as "the 95%
@@ -477,7 +454,7 @@ def _(
     textbook formula, which assumes independent, equally noisy days and would overstate
     significance here.
     """),
-            h2_chart,
+            h1_chart,
             mo.ui.table(
                 _summary,
                 selection=None,
@@ -488,18 +465,18 @@ def _(
     **Supporting context** (descriptive, not a pre-set test): far more industries have a
     clearly non-zero γ at high VIX.
     """),
-            _context,
+            result_table(_context),
             mo.md(r"""
-    ### H1, direction: sensitivities keep the same sign in both regimes → **can't be judged as written**
+    ### H2, direction: sensitivities keep the same sign in both regimes → **can't be judged as written**
 
-    H1 is judged only on industries whose γ is clearly non-zero in *both* regimes:
+    H2 is judged only on industries whose γ is clearly non-zero in *both* regimes:
     """),
-            h1_table,
-            mo.md(r"""
-    Only 2 industries qualify (software and electronic equipment), and both keep a
-    positive sign. Two is too few to judge a pattern across 49 industries. The test was
-    not loosened after seeing this, since choosing a test to fit the data would
-    undermine the result.
+            result_table(h2_table),
+            mo.md(rf"""
+    Only {len(h2_qualifying)} industries qualify ({", ".join(_qualifying_names)}), and
+    {int(h2_qualifying["same sign"].sum())} of them keep their sign. That is too few to
+    judge a pattern across 49 industries. The test was not loosened after seeing this,
+    since choosing a test to fit the data would undermine the result.
     """),
             mo.md(r"""
     **Caveats**
@@ -509,8 +486,8 @@ def _(
       suggest.
     - High-VIX days come from a handful of crisis episodes, so the effective sample is
       smaller than the day count.
-    - Measuring VIX in points biases *against* H2: if industries respond to percentage
-      VIX moves, per-point γ shrinks at high VIX. H2 holds anyway.
+    - Measuring VIX in points biases *against* H1: if industries respond to percentage
+      VIX moves, per-point γ shrinks at high VIX. H1 holds anyway.
     """),
         ]
     )

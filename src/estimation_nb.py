@@ -54,7 +54,7 @@ def _():
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    # Phases 3–4: Industry sensitivities and their confidence intervals 🤖
+    # Phase 3: Industry sensitivities and their confidence intervals 🤖
 
     *Companion to `main.py`. Code: `src/estimation.py`. How each regression is solved: `ols_nb.py`.*
 
@@ -62,7 +62,7 @@ def _(mo):
 
     - **Full sample:** market betas range from 0.38 (Precious Metals) to 1.33 (Electronic Equipment). Vol-shock sensitivities γ range from −0.11 (Petroleum and Natural Gas) to +0.10 (Computers) % per point; 32 of 49 are negative.
     - **By regime:** on low-VIX days most γ's are near zero; on high-VIX days they spread out much more.
-    - **Confidence intervals** come from a 20-day block bootstrap (1,000 resamples). 6 industries have a clearly non-zero γ on low-VIX days, 20 on high-VIX days, and 9 have a clearly non-zero high-minus-low difference.
+    - **Confidence intervals** come from a 20-day block bootstrap (1,000 resamples). 5 industries have a clearly non-zero γ on low-VIX days, 20 on high-VIX days, and 8 have a clearly non-zero high-minus-low difference.
 
     **Units used throughout:** returns are in **percent per day** (0.5 = 0.5%); VIX changes are in **VIX points**. So **γ (gamma)** is the % move in an industry for a 1-point vol shock: γ = −0.10 means a 1-point surprise jump in VIX goes with the industry being 0.10% lower that day.
     """)
@@ -97,7 +97,7 @@ def _(mo):
 
     **Question.** For each industry: how much does it move with the market (**β**, beta), and how much with vol shocks (**γ**, gamma)?
 
-    **How it's built.** For each industry, one regression across all 9,228 days:
+    **How it's built.** For each industry, one regression across all 9,249 days:
 
     $$
     \text{industry excess return}_t = \alpha + \beta \cdot \text{Mkt-RF}_t + \gamma \cdot \text{vol shock}_t + \text{miss}_t
@@ -287,10 +287,10 @@ def _(mo):
 
     **How it's built.**
 
-    1. Cut the 9,228-day timeline into random runs of 20 consecutive days and glue enough of them together to make a fake 9,228-day history. Each day keeps its own regime flag.
+    1. Cut the 9,249-day timeline into random runs of 20 consecutive days and glue enough of them together to make a fake 9,249-day history. Each day keeps its own regime flag.
     2. Rerun the regime fits (section 2) on that fake history to get γ_low and γ_high for all 49 industries.
     3. Repeat 1,000 times. The spread (standard deviation) of the 1,000 γ's is the **bootstrap standard error (SE)**.
-    4. Interval = estimate ± 1.96 × SE. The same goes for the difference γ_high − γ_low and for |γ_high| − |γ_low| (for H2): those are computed inside each resample, then spread.
+    4. Interval = estimate ± 1.96 × SE. The same goes for the difference γ_high − γ_low and for |γ_high| − |γ_low| (for H1): those are computed inside each resample, then spread.
 
     **Decisions and why**
 
@@ -298,7 +298,7 @@ def _(mo):
     |---|---|---|
     | **Bootstrap**, not the textbook OLS formula for SEs. | The formula assumes every day's miss is independent and equally noisy. Crisis days are neither: they're noisier and come in runs. | Textbook SEs: too narrow here, so too many industries would look significant. |
     | **Blocks of consecutive days**, not single days. | A 3-week crisis has to stay together in the resample, or the fake histories look calmer than the real one and the intervals come out too narrow. | Single-day (iid) bootstrap: breaks up crisis runs, same problem as the textbook formula. |
-    | **Block length 20 days** (about a month). | Too short a block cuts crisis runs apart (bias); too long leaves too few distinct blocks (noisy SEs). Balancing the two puts the best length proportional to n^(1/3) (Hall, Horowitz & Jing 1995), and 9,228^(1/3) ≈ 21. | Other lengths: the theory gives the growth rate, not the exact constant. Rerunning with 10 and 60 days is in the post-project list. |
+    | **Block length 20 days** (about a month). | Too short a block cuts crisis runs apart (bias); too long leaves too few distinct blocks (noisy SEs). Balancing the two puts the best length proportional to n^(1/3) (Hall, Horowitz & Jing 1995), and 9,249^(1/3) ≈ 21. | Other lengths: the theory gives the growth rate, not the exact constant. Rerunning with 10 and 60 days is in the post-project list. |
     | **SE intervals** (± 1.96 × SE), not percentile intervals. | The n^(1/3) rule is optimal for estimating a *spread*, which is exactly what an SE interval uses. For percentile intervals the theory gives a different rate (n^(1/5)). | Percentile intervals (2.5th–97.5th of the draws): would call for ~6-day blocks, which may cut crisis runs apart. |
     | **Resample the full timeline**, not each regime on its own. | Crisis runs stay intact even where they cross the regime line. And γ_low and γ_high in one resample come from the *same* fake history, so their difference has the right spread. | Resample each regime separately: breaks that pairing, so the high-minus-low interval would be wrong. |
     | **1,000 resamples, fixed seed.** | Plenty to pin down an SE; the fixed seed makes reruns give identical numbers. | — |

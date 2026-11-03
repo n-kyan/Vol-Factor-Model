@@ -163,7 +163,7 @@ def load_vix_table() -> pd.Series:
 # "Better heuristic: to measure reaction to news or a priced risk, use an innovation. To measure state-dependence, use a conditioning variable with SEs that account for persistence." - 🤖
 
 
-def build_data(start: str = "1990-01-03") -> pd.DataFrame:
+def build_data(start: str = "1990-01-03", end: str = "2026-12-31") -> pd.DataFrame:
     """Returns panel of industry excess returns and a tables of the Mkt-RF, VIX, dVIX, and regime flag time series; inner-joined."""
     ind = load_kfrench_table("49_Industry_Portfolios_daily_CSV.zip", "Average Value Weighted")
     ff = load_kfrench_table("F-F_Research_Data_Factors_daily_CSV.zip")
@@ -172,7 +172,7 @@ def build_data(start: str = "1990-01-03") -> pd.DataFrame:
     panel = pd.concat(
         [ind, ff[["Mkt-RF", "RF"]], vix, dvix(vix), regime_flag(vix)],
         axis=1, join="inner",
-    ).loc[start:]
+    ).loc[start:end]
 
     industries = ind.columns
     panel[industries] = panel[industries].sub(panel["RF"], axis=0)

@@ -45,4 +45,3 @@ def test_func(phrase: str):
 
 
 
-test_func("poopie")
