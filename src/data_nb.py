@@ -137,7 +137,7 @@ def _(mo):
     |---|---|
     | **Cache downloads, never re-download** | Reruns give identical results and don't depend on the websites being up. Delete a file in `data/raw/` to refresh it. |
     | **Keep only days present in all three sources** | A regression needs every variable on the same day. A day without a VIX close can't have a vol shock. |
-    | **Excess returns** (industry return − RF) | Matches how Mkt-RF is defined, so β is the standard market beta and the risk-free rate doesn't leak into α. |
+    | **Excess returns** (industry return − RF) | Matches how Mkt-RF is defined, so β_mkt is the standard market beta and the risk-free rate doesn't leak into α. |
     | **ΔVIX in points** | Matches vega, the industry standard in options market making: sensitivities can be read as "per 1 vol point". Also the simplest to interpret. Percentage/log changes are in the post-project analysis. |
     | **Drop industries with missing days** | Every industry then uses the exact same days, so results are comparable across industries. From 1990 none are missing. |
     """)

@@ -6,7 +6,7 @@ import numpy as np
 def add_intercept(x):
     """Put a column of 1s in front of x (1-D or 2-D). The result is the design matrix X."""
     # Why: the column of 1s gives each industry its own average return (alpha),
-    # so beta and gamma don't get bent to absorb it.
+    # so the two betas don't get bent to absorb it.
     ones = np.ones(len(x))
     return np.column_stack([ones, x])
 

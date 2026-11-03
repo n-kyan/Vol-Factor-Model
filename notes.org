@@ -8,8 +8,71 @@ Main.py
 - [ ] Make it easy to show: have it open on your laptop. GitHub won't display a rendered marimo notebook, so a repo link isn't enough. I can export it to a standalone HTML file you can open with no setup.
 
 * Notes
-- need to get the numbers that support the conclusion to each hypothesis. I prefer tables to anythig else and i think that marimo has a table UI widget.
-- Need to change the data to truly being the range of 1990 to 2026. i know it will keep changing a tiniy bit until 2027 but i am ok with that.
-- Each of the bullets for the methodology overview should follow a phase from the plan we used to build the project which should be associated with its own nb file, threfore each these should describe a process that is owned by a specific notebook.
-- I am wondering if the table in the accoridan that shows the other notebooks should be a widget table rather than a plain markdown table.
-- 
+** Hypothesis cell
+- i feel like some of the terminology used and even some sentence sdtructure is vague or doesn't use proper quant terms. For example using the word "chance" seems weird, for example "chance by luck" is not easy to interpret at first glance. To me something like "by random chance" is an example of what seems like more standard. I have never heard of quants using the word chance, only "proabbility" and "Likliehood", though i know those are different. Also saying "significantly x" like significantly larger or smaller seems vague because it overlaps with casual english. To me it seems that there is surely a indsutry standard way to say "x with statistical significance" and the footnote should probably explain what we counted as statistically significant. Same goes for "clear". As a reader, you have no clue what clear means. Does it mean statistically significant? Who knows. Again, industry standard vocab needs to be used here and probably accompanied with a footnote.
+- Why is the second phase called vol shock when the second phase we worked on is called factors and that is also the name of the files?
+- Is this correct: "Two factors are used: market excess returns and daily vol shocks. Vol shocks are daily changes in the vix that are not explained by daily marker excess returns." What does "explained by" really mean. Like i know its the impact of the GS projection but that phrase seems vague to someone reading.
+- why is the third phase called estimation but inside it has regression, and bootstrapping. the files has regression in its own file. I already told you that the overview needs to match the way we actually structued the project.
+- I removed the table formatr from the methodolofy overview. do not change it back.
+- I want to be able to link to the other notebooks not just give them the command to run them. This project needs to be presented as a a report not as a piece of code. We need to imagine that the viewer is a fundamental researcher who understands facort modelling but doesnt know the math or programming. We account for this by haiving put the math into its own notebook and by making the deliterable an file like an html that can just be opened from an email and doesnt require all the steps of cloning the git repo, setting up an ide/terminal and correctly running the run commands.
+
+** Data
+- Needs a table where each row is a data source and each column is information about it that someone might be curious about. Information need to be presented clearly and without bloat. Audience for this project are quants and non-quants alike.
+- notice how i repeat language from the overview here because it makes the reader recall the overview and underscores that this section is an extention. Also if the reader had questions while reading the overview, the repeated language indicates that their question might be answered here.
+- markdown bold is not rendering in the cell.
+- Is it even right to compare the previous day's vix close to the threshold? Sure if you do the day's close then it includes the days shock, but like it kinda seems like that is correct. In theory with the current method a day where the previous vix close was 15 but its own close was 50 would be categorized as low VIX which seems strange.
+- "High-VIX days come in a few long episodes (orange), which is why the effective sample is smaller than the day count." this makes no sense because the meanings of effective sample is unknown. By construction the number of high vix days is roughly equal to low vix days so this sentence reads oddly and borderline as an incorrect statement.
+
+** Factors / name that actually describes what happens herein this phase (The Vol Shock)
+- The table is good
+- Section seems overall lackluster. It doesnt talk about what was done during this phase or why.
+- I just dont like how this cell's text is structured either.
+
+** Estimation (title is too vague)
+- latex needs to be used for all math formulas and they should be on their own line, centered.
+- We need a better explanation of bootstrapping with more of a focus on why its results are valid. If i have never seen boostrapping before the explanation doesn't explain why the technique accomplishes what it does in a way that i can trust. Doesnt need to be super technical but people need to think our decisions and methods are credible and valid from reading main.py. I read "rebuild 1,000 alternative
+histories from random 20-day stretches of the real timeline, re-estimate every β_vol on
+each, and use the spread of those 1,000 estimates (interval = estimate ± 1.96 × that
+spread)" and think: "why does this create valid alternative histories that carry trustworthy information about the true history? WTF does "that spread" refer to, where did 1.96 come from."
+- Blue, orange, and gray used in the graph are not bright/high constrast enough.
+
+** Validation
+- need an explanation of how a monte carlo test works with an implied statement of why its the approach we used
+- Table is hard to interpret and has no description and uses the word "coverage" which is never used beforehand or defined after.
+- "All four are within a fraction of a percent of the 95% target (4,900 intervals each). Limit: the simulated noise doesn't cluster like real crisis noise, so this checks the machinery, not the 20-day block length." feels pointless an out of place since the table itself is hard to interpret.
+
+  
+
+** Hypotheses
+- The scatter plot has no title
+- Some dots are labled but it is unclear why those dots are highlighted rather than others because visually the scatter plot does not show a relationship between then. The chart is idustries plotted by their ratios of low vix vol beta and high vix vol beta but that is completely unrelated to whether or not the difference is significant so the highlighting is distracting at best. Also the nonhighlighted points are still labled with "null" which obstructs viewing.
+- the axis titles are hard to heard because the absolite value symbols look like the letter l. This reminds me that i already asked you to change the table fonts to match the marimo notebook fonts and that also needs to be done to all graphics not just tables. This will probably help the legibility issue.
+- Overall need to rethink the purpose of this chart and its inclusion. Surely there are better visuals that can be used.
+
+** What's next
+- needs to be replaced with a true conclusion section where the considerations of alternative approaches can be written.
+- With no true conclusion the report ends abruptly and even looks like a section got cut off.
+- There is no mention of the implications of our findings which is probably the most important seciton of this entire report. Right now its just evidence. it reminds me of this idea:
+  Philosopher Stephen Toulmin’s model of argument splits it into three parts:
+
+Claim: what you’re arguing
+Grounds: the evidence
+Warrant: the reasoning that connects the evidence to the claim
+
+
+Analysis is the warrant. Most weak essays have a claim and evidence but leave the warrant unstated and assume the reader will make the connection. Classrooms often teach a simpler version called Claim–Evidence–Reasoning (CER).
+
+Why it’s the important part
+
+Evidence is interchangeable; reasoning isn’t. Anyone can find a quote. The specific way you connect it to your claim is your contribution.
+It’s where the thinking is visible. Evidence shows you did research. Analysis shows you understood it.
+It’s what persuades. A reader who disagrees with you will rarely dispute your facts. They’ll dispute what you claim those facts mean. If you don’t make that case, you haven’t argued anything.
+It’s the only part that can be wrong. That makes it the part worth judging.
+
+Quick ways to explain it to others
+
+Courtroom: Exhibits don’t win cases. The closing argument that explains what the exhibits prove does.
+Cooking: Evidence is the ingredients. Analysis is the cooking. Nobody serves a pile of raw ingredients and calls it a meal.
+The “so what?” test: After every piece of evidence, ask “so what?” The answer is your analysis. If you can’t answer it, the evidence is decoration.
+
+A practical rule of thumb you could pass on: if a paragraph/project is mostly quotes or data with a sentence of commentary, flip the ratio.

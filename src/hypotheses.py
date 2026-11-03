@@ -21,20 +21,20 @@ def significant(lower: np.ndarray, upper: np.ndarray) -> np.ndarray:
     return (lower > 0) | (upper < 0)
 
 
-def evaluate_h1(g_low, g_high, absdiff_lower, absdiff_upper):
-    """H1, magnitude: |gamma| bigger at high VIX. Two pre-set measures across all industries.
+def evaluate_h1(vb_low, vb_high, absdiff_lower, absdiff_upper):
+    """H1, magnitude: |vol beta| bigger at high VIX. Two pre-set measures across all industries.
 
-    1. Count of |gamma_high| > |gamma_low|, vs. half expected if regimes didn't differ.
+    1. Count of |vol_beta_high| > |vol_beta_low|, vs. half expected if regimes didn't differ.
     2. Count of |high| - |low| intervals excluding 0, split by direction.
     Returns a dict of counts and chance probabilities.
     """
-    n = len(g_low)
-    bigger = int((np.abs(g_high) > np.abs(g_low)).sum())
+    n = len(vb_low)
+    bigger = int((np.abs(vb_high) > np.abs(vb_low)).sum())
     sig = significant(absdiff_lower, absdiff_upper)
     sig_bigger = int((sig & (absdiff_lower > 0)).sum())
     sig_smaller = int((sig & (absdiff_upper < 0)).sum())
     # Why p = 0.5 for the count: if regimes didn't differ, each industry is a coin flip
-    # for which regime has the bigger |gamma|.
+    # for which regime has the bigger |vol beta|.
     # Why p = 0.025 for the significant-bigger count: with no real difference, a 95% interval
     # lands entirely above 0 by luck 2.5% of the time (the other 2.5% is entirely below).
     return {
@@ -49,8 +49,8 @@ def evaluate_h1(g_low, g_high, absdiff_lower, absdiff_upper):
     }
 
 
-def evaluate_h2(g_low, g_high, sig_low, sig_high, industries):
-    """H2, direction: same gamma sign in both regimes, judged only where gamma is significant in BOTH.
+def evaluate_h2(vb_low, vb_high, sig_low, sig_high, industries):
+    """H2, direction: same vol beta sign in both regimes, judged only where vol beta is significant in BOTH.
 
     Returns (table_2x2, qualifying), where qualifying lists the industries significant in both
     regimes with their signs.
@@ -64,7 +64,7 @@ def evaluate_h2(g_low, g_high, sig_low, sig_high, industries):
     )
     both = sig_low & sig_high
     qualifying = pd.DataFrame(
-        {"sign low": np.sign(g_low[both]), "sign high": np.sign(g_high[both])},
+        {"sign low": np.sign(vb_low[both]), "sign high": np.sign(vb_high[both])},
         index=np.array(industries)[both],
     )
     qualifying["same sign"] = qualifying["sign low"] == qualifying["sign high"]
@@ -72,11 +72,11 @@ def evaluate_h2(g_low, g_high, sig_low, sig_high, industries):
 
 
 def significance_counts(sig_low, sig_high):
-    """Supporting context for H1 (descriptive, not a pre-set test): significant gammas per regime."""
+    """Supporting context for H1 (descriptive, not a pre-set test): significant vol betas per regime."""
     n = len(sig_low)
     return pd.DataFrame(
         {
-            "significant gammas": [int(sig_low.sum()), int(sig_high.sum())],
+            "significant vol betas": [int(sig_low.sum()), int(sig_high.sum())],
             "expected by chance": [n * CHANCE_RATE, n * CHANCE_RATE],
             "chance of this many or more": [
                 binomial_tail(int(sig_low.sum()), n, CHANCE_RATE),

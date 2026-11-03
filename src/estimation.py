@@ -6,14 +6,14 @@ import pandas as pd
 from factors import vol_shock
 from ols import add_intercept, ols
 
-COEF_NAMES = ["alpha", "beta", "gamma"]
+COEF_NAMES = ["alpha", "beta_mkt", "beta_vol"]
 
 
 def fit_industries(returns: np.ndarray, mkt: np.ndarray, dvix: np.ndarray) -> np.ndarray:
     """Step 3: regress every industry's excess return on [1, Mkt-RF, vol shock].
 
     returns: (days, industries). mkt, dvix: (days,).
-    Returns b: (3, industries). Row 0 = alpha, row 1 = beta (market), row 2 = gamma (vol shock).
+    Returns b: (3, industries). Row 0 = alpha, row 1 = beta_mkt (market), row 2 = beta_vol (vol shock).
     """
     # Why the vol shock is built here, from the same days as the regression: when this is
     # called on one regime's days, the shock is that regime's own Gram-Schmidt residual,
@@ -64,9 +64,9 @@ def block_indices(n_days: int, block_length: int, rng: np.random.Generator) -> n
     return positions[:n_days]
 
 
-def bootstrap_gammas(returns, mkt, dvix, high, block_length=BLOCK_LENGTH,
+def bootstrap_vol_betas(returns, mkt, dvix, high, block_length=BLOCK_LENGTH,
                      n_resamples=N_RESAMPLES, seed=0):
-    """Step 6: re-estimate gamma_low and gamma_high on many block-bootstrap resamples.
+    """Step 6: re-estimate vol_beta_low and vol_beta_high on many block-bootstrap resamples.
 
     Returns (draws_low, draws_high), each (n_resamples, industries).
     """
@@ -102,19 +102,19 @@ def se_interval(estimate: np.ndarray, draws: np.ndarray):
 def regime_interval_table(returns, mkt, dvix, high, industries) -> pd.DataFrame:
     """Steps 4 + 6 in one table: estimate, 95% interval and significance per industry.
 
-    Statistics: gamma low, gamma high, high - low, |high| - |low|. Values in % per VIX point.
+    Statistics: vol beta low, vol beta high, high - low, |high| - |low|. Values in % per VIX point.
     Columns: "<stat>", "<stat> lo", "<stat> hi", "<stat> t" (estimate / bootstrap SE),
     "<stat> sig" (interval excludes 0, the same as |t| > 1.96).
     """
     b_low, b_high = fit_by_regime(returns, mkt, dvix, high)
-    draws_low, draws_high = bootstrap_gammas(returns, mkt, dvix, high)
-    g_low = b_low[2]
-    g_high = b_high[2]
+    draws_low, draws_high = bootstrap_vol_betas(returns, mkt, dvix, high)
+    vb_low = b_low[2]
+    vb_high = b_high[2]
     stats = {
-        "gamma low": (g_low, draws_low),
-        "gamma high": (g_high, draws_high),
-        "high - low": (g_high - g_low, draws_high - draws_low),
-        "|high| - |low|": (np.abs(g_high) - np.abs(g_low), np.abs(draws_high) - np.abs(draws_low)),
+        "vol beta low": (vb_low, draws_low),
+        "vol beta high": (vb_high, draws_high),
+        "high - low": (vb_high - vb_low, draws_high - draws_low),
+        "|high| - |low|": (np.abs(vb_high) - np.abs(vb_low), np.abs(draws_high) - np.abs(draws_low)),
     }
     table = pd.DataFrame(index=industries)
     for name in stats:

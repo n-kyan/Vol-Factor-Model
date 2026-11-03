@@ -73,23 +73,23 @@ def vix_timeline(vix, threshold):
     return fig
 
 
-def gamma_intervals(table, names):
-    """Two panels per industry: gamma by regime with 95% intervals, and the high-minus-low difference.
+def vol_beta_intervals(table, names):
+    """Two panels per industry: vol beta by regime with 95% intervals, and the high-minus-low difference.
 
     table: output of estimation.regime_interval_table. names: display label per row of table.
     """
-    t = table.assign(label=names).sort_values("gamma high")
+    t = table.assign(label=names).sort_values("vol beta high")
     y = np.arange(len(t))
     fig, axes = new_figure(n_panels=2, width=12, height=11)
 
     ax = axes[0]
-    for stat, color, shift, label in [("gamma low", BLUE, -0.15, "low-VIX days"), ("gamma high", ORANGE, 0.15, "high-VIX days")]:
+    for stat, color, shift, label in [("vol beta low", BLUE, -0.15, "low-VIX days"), ("vol beta high", ORANGE, 0.15, "high-VIX days")]:
         ax.errorbar(t[stat], y + shift, xerr=[t[stat] - t[f"{stat} lo"], t[f"{stat} hi"] - t[stat]],
                     fmt="o", color=color, markersize=4, linewidth=1, label=label)
     ax.axvline(0, color=GRAY, linewidth=1)
     ax.set_yticks(y)
     ax.set_yticklabels(t["label"], fontsize=7)
-    ax.set_xlabel("γ: % return per 1-point vol shock, with 95% interval")
+    ax.set_xlabel("β_vol: % return per 1-point vol shock, with 95% interval")
     ax.set_title("Vol-shock sensitivity by regime", fontsize=10)
     ax.legend(frameon=False, loc="lower right")
 
@@ -99,16 +99,16 @@ def gamma_intervals(table, names):
     ax.axvline(0, color=GRAY, linewidth=1)
     ax.set_yticks(y)
     ax.set_yticklabels([])
-    ax.set_xlabel("γ high − γ low, with 95% interval")
+    ax.set_xlabel("β_vol high − β_vol low, with 95% interval")
     ax.set_title("Regime difference", fontsize=10)
     fig.tight_layout()
     return fig
 
 
 def h1_scatter(table):
-    """|gamma low| vs |gamma high| per industry; orange = |high| - |low| interval excludes 0."""
-    abs_low = table["gamma low"].abs()
-    abs_high = table["gamma high"].abs()
+    """|vol beta low| vs |vol beta high| per industry; orange = |high| - |low| interval excludes 0."""
+    abs_low = table["vol beta low"].abs()
+    abs_high = table["vol beta high"].abs()
     sig = table["|high| - |low| sig"]
     fig, axes = new_figure(width=6.5, height=6)
     ax = axes[0]
@@ -120,8 +120,8 @@ def h1_scatter(table):
         ax.annotate(name, (abs_low[name], abs_high[name]), fontsize=7, xytext=(4, 2), textcoords="offset points")
     ax.set_xlim(lim)
     ax.set_ylim(lim)
-    ax.set_xlabel("|γ| on low-VIX days, % per point")
-    ax.set_ylabel("|γ| on high-VIX days, % per point")
+    ax.set_xlabel("|β_vol| on low-VIX days, % per point")
+    ax.set_ylabel("|β_vol| on high-VIX days, % per point")
     ax.set_title("Dots above the line = bigger sensitivity at high VIX", fontsize=10)
     ax.legend(frameon=False, fontsize=8, loc="lower right")
     fig.tight_layout()
@@ -161,16 +161,27 @@ def altair_scatter(df, x, y, x_title, y_title, color_field, color_domain, color_
 
 
 def gt_table(df, title, subtitle=None, source=None):
-    """A presentation table (great_tables): title, optional subtitle and source note, one shared style.
+    """A presentation table (great_tables) in its default look: title, optional subtitle and source note.
 
     The DataFrame index becomes the row labels. Returns the GT object, so a cell can chain more
-    methods (tab_spanner, tab_footnote, fmt_percent, ...).
+    methods (tab_spanner, tab_footnote, ...).
     Why great_tables, not mo.ui.table: these tables are read, not explored, so they need titles and
     footnotes rather than search, sorting and paging.
     """
-    from great_tables import GT
+    from great_tables import GT, loc, style
 
     table = GT(df.reset_index(names="row"), rowname_col="row").tab_header(title=title, subtitle=subtitle)
     if source is not None:
         table = table.tab_source_note(source)
-    return table.opt_stylize(style=1, color="gray")
+    # Why the CSS variables: great_tables sets its own fonts; these are marimo's own text and heading
+    # fonts, so the tables match the rest of the notebook.
+    table = table.opt_table_font(font="var(--text-font)", add=False)
+    # Why these sizes: marimo's markdown body text is 1rem and a ### header is 1.25rem, so table
+    # cells match body text and table titles match a ### header (tables sit inside ## sections).
+    # Subtitles are 0.9rem, the same as great_tables' default for footnotes and source notes.
+    table = table.tab_options(
+        table_font_size="1rem",
+        heading_title_font_size="1.25rem",
+        heading_subtitle_font_size="0.9rem",
+    )
+    return table.tab_style(style=style.text(font="var(--heading-font)"), locations=[loc.title(), loc.subtitle()])

@@ -30,19 +30,19 @@ def tail_counts(x: pd.Series, cutoffs) -> pd.DataFrame:
     return pd.DataFrame(rows).T
 
 
-def gamma_summary(table: pd.DataFrame, names) -> pd.DataFrame:
+def vol_beta_summary(table: pd.DataFrame, names) -> pd.DataFrame:
     """Readable per-industry table from estimation.regime_interval_table.
 
     Per statistic: estimate [95% interval] with * when significant, then its t-stat (bootstrap SE).
     """
     out = pd.DataFrame({"industry": names, "code": table.index})
-    for stat in ["gamma low", "gamma high", "high - low"]:
+    for stat in ["vol beta low", "vol beta high", "high - low"]:
         cells = []
         for code in table.index:
             row = table.loc[code]
             star = " *" if row[f"{stat} sig"] else ""
             cells.append(f"{row[stat]:+.3f} [{row[f'{stat} lo']:+.3f}, {row[f'{stat} hi']:+.3f}]{star}")
-        label = stat.replace("gamma", "γ")
+        label = stat.replace("vol beta", "β_vol")
         out[f"{label} (%/pt)"] = cells
         out[f"{label} t"] = table[f"{stat} t"].round(2).to_numpy()
     return out.reset_index(drop=True)

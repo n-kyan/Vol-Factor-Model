@@ -208,11 +208,11 @@ def _(mo):
 
     **What $Xb$ means.** Take each row of $X$, multiply it entry by entry with $b$, and add up. Row 0 is $[1, 1]$, so its prediction is $1 \cdot b_0 + 1 \cdot b_1$. With $b = [0.05, 1.99]$ that's $0.05 + 1.99 = 2.04$. The actual $y_0$ is $2.1$, so the miss is $e_0 = 2.1 - 2.04 = 0.06$. $Xb$ does this for every row at once. That's what makes the matrix form compact. The next cell shows the loop and NumPy's `@` giving the same predictions.
 
-    **In the project,** each industry's row for a day will be $[\,1,\ \text{Mkt-RF},\ \text{vol shock}\,]$, and $b = [\alpha, \beta, \gamma]$:
+    **In the project,** each industry's row for a day will be $[\,1,\ \text{Mkt-RF},\ \text{vol shock}\,]$, and $b = [\alpha, \beta_{\text{mkt}}, \beta_{\text{vol}}]$:
 
     - $\alpha$ (alpha) is the intercept.
-    - $\beta$ (beta) is the market sensitivity.
-    - $\gamma$ (gamma) is the vol-shock sensitivity.
+    - $\beta_{\text{mkt}}$ (market beta) is the market sensitivity.
+    - $\beta_{\text{vol}}$ (vol beta) is the vol-shock sensitivity.
     """)
     return
 
@@ -291,7 +291,7 @@ def _(mo):
     mo.md(r"""
     Forced through $(0, 0)$, the only way the line can reach dots that sit at height 5 is to tilt upward. So it reports a slope of 1.36 that isn't real. With the column of 1s, the line can just sit at height 5, and it correctly reports a slope of about 0.
 
-    **Project link.** Each industry has its own average daily return. Without the intercept, $\beta$ and $\gamma$ would get bent to absorb that average, the same way the slope got bent here.
+    **Project link.** Each industry has its own average daily return. Without the intercept, $\beta_{\text{mkt}}$ and $\beta_{\text{vol}}$ would get bent to absorb that average, the same way the slope got bent here.
 
     ## 3. The matrix tools: transpose, dot product, matrix multiply
 
@@ -978,7 +978,7 @@ def _(mo):
     mo.md(r"""
     ### Check 4: many industries at once
 
-    In the project, $X$ (the same days of Mkt-RF and vol shock) is shared by all 49 industries. Only $y$ changes. So $y$ becomes a matrix with **one column per industry**, and `ols` returns a matrix with **one column of coefficients per industry**. Row 0 holds the intercepts, row 1 the slopes on $x_1$ (think β), and row 2 the slopes on $x_2$ (think γ).
+    In the project, $X$ (the same days of Mkt-RF and vol shock) is shared by all 49 industries. Only $y$ changes. So $y$ becomes a matrix with **one column per industry**, and `ols` returns a matrix with **one column of coefficients per industry**. Row 0 holds the intercepts, row 1 the slopes on $x_1$ (think β_mkt), and row 2 the slopes on $x_2$ (think β_vol).
 
     No new code is needed. $X^\top y$ just gains one column per industry, and `solve` handles every column the same way. The check confirms that one big call matches fitting an industry on its own.
     """)
@@ -990,7 +990,7 @@ def _(X_sim, np, ols):
     _rng = np.random.default_rng(1)
     _B_true = np.array([[0.1, 0.0, -0.2],    # row 0: intercepts for industries A, B, C
                         [1.2, 0.8, 1.0],     # row 1: slopes on x1 (think beta)
-                        [-0.5, 0.3, 0.0]])   # row 2: slopes on x2 (think gamma)
+                        [-0.5, 0.3, 0.0]])   # row 2: slopes on x2 (think vol beta)
     _Y = X_sim @ _B_true + _rng.normal(scale=0.5, size=(X_sim.shape[0], 3))
 
     _B = ols(X_sim, _Y)
@@ -1015,7 +1015,7 @@ def _(mo):
     **Where they're called:**
 
     - **Vol shock** (`factors.vol_shock`): `ols` of ΔVIX on [1, Mkt-RF]; the residuals are the vol shock.
-    - **Industry sensitivities** (`estimation.fit_industries`): `ols` of all 49 industries on [1, Mkt-RF, vol shock] in one call, giving α, β and γ.
+    - **Industry sensitivities** (`estimation.fit_industries`): `ols` of all 49 industries on [1, Mkt-RF, vol shock] in one call, giving α, β_mkt and β_vol.
     - **Bootstrap and Monte Carlo:** the same `ols`, run thousands of times on resampled or simulated data.
     """)
     return

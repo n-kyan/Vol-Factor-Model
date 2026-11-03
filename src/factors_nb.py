@@ -14,21 +14,21 @@ def _():
     from data import INDUSTRY_NAMES, build_data
     from factors import vol_shock
     from ols import add_intercept, ols
-    from estimation import BLOCK_LENGTH, N_RESAMPLES, bootstrap_gammas, coef_table, fit_by_regime, fit_industries, regime_interval_table, se_interval
-    from validation import GAMMA_RATIO, N_SIMS, monte_carlo_coverage, noise_sd_by_regime
+    from estimation import BLOCK_LENGTH, N_RESAMPLES, bootstrap_vol_betas, coef_table, fit_by_regime, fit_industries, regime_interval_table, se_interval
+    from validation import VOL_BETA_RATIO, N_SIMS, monte_carlo_coverage, noise_sd_by_regime
     from hypotheses import evaluate_h1, evaluate_h2, significance_counts
 
     return (
         BLOCK_LENGTH,
         BLUE,
-        GAMMA_RATIO,
+        VOL_BETA_RATIO,
         GRAY,
         INDUSTRY_NAMES,
         N_RESAMPLES,
         N_SIMS,
         ORANGE,
         add_intercept,
-        bootstrap_gammas,
+        bootstrap_vol_betas,
         build_data,
         coef_table,
         evaluate_h1,
@@ -63,7 +63,7 @@ def _(mo):
     - The **vol shock** is the other ~40%: each day's VIX change minus what that day's market move predicts. It is uncorrelated with the market by construction.
     - The relationship is slightly stronger on high-VIX days (a 1% market drop goes with VIX +1.16 points, vs. +1.10 on low-VIX days), and VIX moves are about twice as large.
 
-    **Units used throughout:** returns are in **percent per day** (0.5 = 0.5%); VIX changes are in **VIX points**. So **γ (gamma)** is the % move in an industry for a 1-point vol shock: γ = −0.10 means a 1-point surprise jump in VIX goes with the industry being 0.10% lower that day.
+    **Units used throughout:** returns are in **percent per day** (0.5 = 0.5%); VIX changes are in **VIX points**. So **β_vol (vol beta)** is the % move in an industry for a 1-point vol shock: β_vol = −0.10 means a 1-point surprise jump in VIX goes with the industry being 0.10% lower that day.
     """)
     return
 
@@ -94,7 +94,7 @@ def _(mo):
 
     | Decision | Why | Obvious alternative, and why not |
     |---|---|---|
-    | **Market goes first.** VIX is cleaned of the market, not the other way round. | The question is about vol moves *beyond* market moves. The market keeps everything it can explain, and only the leftover counts as a vol shock. | Clean the market of VIX instead. Then "market" would mean "market moves VIX can't explain", β would stop being the ordinary market beta, and the question would change. |
+    | **Market goes first.** VIX is cleaned of the market, not the other way round. | The question is about vol moves *beyond* market moves. The market keeps everything it can explain, and only the leftover counts as a vol shock. | Clean the market of VIX instead. Then "market" would mean "market moves VIX can't explain", β_mkt would stop being the ordinary market beta, and the question would change. |
     | **Include an intercept** in this regression. | It makes the vol shock average exactly 0, so it only measures surprises, not VIX's average drift. | Leave it out: any average drift in VIX would leak into the shock. |
     | **VIX changes in points** (already decided). | It matches how options desks measure vol moves (vega), and it's simple to read. | Percentage changes: in the post-project analysis. |
 
