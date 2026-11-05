@@ -1,3 +1,5 @@
+Link to hosted version: https://nkyan-torre.tail598fa6.ts.net/?file=main.py
+
 To-do throughout project or after its done. This is a part of the
 final deliverables not something to be used throughout
 delevelopment. For that document go to DEV_GUIDE.md

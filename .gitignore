@@ -14,3 +14,6 @@ report.zip
 
 # Password to acess hosted instance
 secrets/
+
+# URL with password
+https://nkyan-torre.tail598fa6.ts.net/?file=main.py&access_token=8172540150f63701e6d676de931fee32
