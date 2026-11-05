@@ -3,10 +3,17 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-BLUE = "#2a78d6"     # low-VIX regime / main series
-ORANGE = "#eb6834"   # high-VIX regime
-GRAY = "#8a8985"     # reference lines, secondary series
-INK = "#52514e"      # axis text
+# Why these steps: the deeper steps of the same blue/orange hues, for more contrast on white.
+# Checked with the dataviz palette validator (colorblind separation and >= 3:1 contrast pass).
+BLUE = "#1c5cab"     # low-VIX regime / main series
+ORANGE = "#d4501c"   # high-VIX regime
+GRAY = "#6b6a65"     # reference lines, secondary series
+INK = "#3a3936"      # axis text, neutral marks
+
+# Why PT Sans: it is marimo's body-text font (--text-font), so charts match the notebook text.
+# It ships with macOS; matplotlib falls back to its default font where it isn't installed.
+FONT = "PT Sans"
+plt.rcParams["font.family"] = [FONT, "DejaVu Sans"]
 
 
 def new_figure(n_panels=1, width=6.0, height=3.6):
@@ -56,8 +63,11 @@ def compare_to_normal(x, label, color):
     return fig
 
 
-def vix_timeline(vix, threshold):
-    """VIX close over time, shaded orange where it sits at or above the regime threshold."""
+def vix_timeline(vix, threshold, title=True):
+    """VIX close over time, shaded orange where it sits at or above the regime threshold.
+
+    title=False leaves the title out, for when the notebook puts it in a markdown heading.
+    """
     fig, axes = new_figure(width=11, height=3.6)
     ax = axes[0]
     ax.plot(vix.index, vix.values, color=GRAY, linewidth=0.7)
@@ -68,7 +78,8 @@ def vix_timeline(vix, threshold):
         ax.annotate(label, (vix.loc[year].idxmax(), vix.loc[year].max()),
                     xytext=(-110, -5), textcoords="offset points", fontsize=8, color=INK)
     ax.set_ylabel("VIX close (points)")
-    ax.set_title("VIX since 1990: orange = above the median (high-VIX regime)", fontsize=10)
+    if title:
+        ax.set_title("VIX since 1990: orange = above the median (high-VIX regime)", fontsize=10)
     fig.tight_layout()
     return fig
 
@@ -85,17 +96,17 @@ def vol_beta_intervals(table, names):
     ax = axes[0]
     for stat, color, shift, label in [("vol beta low", BLUE, -0.15, "low-VIX days"), ("vol beta high", ORANGE, 0.15, "high-VIX days")]:
         ax.errorbar(t[stat], y + shift, xerr=[t[stat] - t[f"{stat} lo"], t[f"{stat} hi"] - t[stat]],
-                    fmt="o", color=color, markersize=4, linewidth=1, label=label)
+                    fmt="o", color=color, markersize=5, linewidth=1.6, label=label)
     ax.axvline(0, color=GRAY, linewidth=1)
     ax.set_yticks(y)
-    ax.set_yticklabels(t["label"], fontsize=7)
+    ax.set_yticklabels(t["label"], fontsize=8.5)
     ax.set_xlabel("β_vol: % return per 1-point vol shock, with 95% interval")
     ax.set_title("Vol-shock sensitivity by regime", fontsize=10)
     ax.legend(frameon=False, loc="lower right")
 
     ax = axes[1]
     ax.errorbar(t["high - low"], y, xerr=[t["high - low"] - t["high - low lo"], t["high - low hi"] - t["high - low"]],
-                fmt="o", color=GRAY, markersize=4, linewidth=1)
+                fmt="o", color=INK, markersize=5, linewidth=1.6)
     ax.axvline(0, color=GRAY, linewidth=1)
     ax.set_yticks(y)
     ax.set_yticklabels([])
@@ -155,8 +166,8 @@ def altair_scatter(df, x, y, x_title, y_title, color_field, color_domain, color_
         line = alt.Chart(pd.DataFrame({x: [0, top], y: [0, top]})).mark_line(color=GRAY, strokeDash=[4, 4]).encode(x=x, y=y)
         layers.insert(0, line)
     if len(layers) == 1:
-        return points.properties(width=520, height=420)
-    return alt.layer(*layers).properties(width=520, height=420)
+        return points.properties(width=520, height=420).configure(font=FONT)
+    return alt.layer(*layers).properties(width=520, height=420).configure(font=FONT)
 
 
 
@@ -185,3 +196,78 @@ def gt_table(df, title, subtitle=None, source=None):
         heading_subtitle_font_size="0.9rem",
     )
     return table.tab_style(style=style.text(font="var(--heading-font)"), locations=[loc.title(), loc.subtitle()])
+
+
+def _h1_frame(table, names):
+    """One row per industry with the |vol beta| statistics the H1 charts need (% per VIX point)."""
+    import pandas as pd
+
+    df = pd.DataFrame({
+        "industry": list(names),
+        "low": table["vol beta low"].abs().to_numpy(),
+        "high": table["vol beta high"].abs().to_numpy(),
+        "change": table["|high| - |low|"].to_numpy(),
+        "lo": table["|high| - |low| lo"].to_numpy(),
+        "hi": table["|high| - |low| hi"].to_numpy(),
+    })
+    result = []
+    for i in range(len(df)):
+        if df["lo"].iloc[i] > 0:
+            result.append("Larger at high VIX (5% level)")
+        elif df["hi"].iloc[i] < 0:
+            result.append("Smaller at high VIX (5% level)")
+        else:
+            result.append("Not significant")
+    df["result"] = result
+    return df.round(3)
+
+
+def h1_bar_chart(table, names):
+    """H1, both measures in one chart: |vol beta high| - |vol beta low| per industry with its 95% interval.
+
+    Bars right of 0 = larger at high VIX (measure 1). Colored bars = the interval excludes 0 (measure 2).
+    table: output of estimation.regime_interval_table. names: display label per row.
+    """
+    import altair as alt
+
+    df = _h1_frame(table, names)
+    order = list(df.sort_values("change", ascending=False)["industry"])
+    y = alt.Y("industry:N", sort=order, title=None)
+    color = alt.Color("result:N", title=None, legend=alt.Legend(orient="bottom"),
+                      scale=alt.Scale(domain=["Larger at high VIX (5% level)", "Smaller at high VIX (5% level)", "Not significant"],
+                                      range=[ORANGE, BLUE, "#b5b3ad"]))
+    tooltip = [alt.Tooltip("industry:N"), alt.Tooltip("change:Q", title="|β_vol high| − |β_vol low|"),
+               alt.Tooltip("lo:Q", title="95% interval, low"), alt.Tooltip("hi:Q", title="95% interval, high"),
+               alt.Tooltip("result:N")]
+    base = alt.Chart(df)
+    bars = base.mark_bar(height=9, cornerRadiusEnd=2).encode(
+        x=alt.X("change:Q", title="|β_vol high| − |β_vol low|, % per VIX point (bar = estimate, line = 95% interval)"),
+        y=y, color=color, tooltip=tooltip)
+    intervals = base.mark_rule(color=INK, strokeWidth=1.5).encode(x="lo:Q", x2="hi:Q", y=y, tooltip=tooltip)
+    zero = alt.Chart().mark_rule(color=GRAY).encode(x=alt.datum(0))
+    return (alt.layer(bars, intervals, zero, data=df).properties(width=560, height=alt.Step(14))
+            .configure(font=FONT).configure_axis(labelFontSize=11, titleFontSize=12)
+            .configure_legend(labelFontSize=12, labelLimit=0))
+
+
+def h1_dumbbell(table, names):
+    """|vol beta| on low- and high-VIX days per industry, joined by a line (H1 measure 1, by eye)."""
+    import altair as alt
+
+    df = _h1_frame(table, names)
+    order = list(df.sort_values("high", ascending=False)["industry"])
+    long = df.melt(id_vars=["industry", "result"], value_vars=["low", "high"], var_name="regime", value_name="size")
+    long["regime"] = long["regime"].map({"low": "Low-VIX days", "high": "High-VIX days"})
+    y = alt.Y("industry:N", sort=order, title=None)
+    lines = alt.Chart(df).mark_rule(color="#b5b3ad", strokeWidth=2).encode(x="low:Q", x2="high:Q", y=y)
+    dots = alt.Chart(long).mark_circle(size=70, opacity=1).encode(
+        x=alt.X("size:Q", title="|β_vol|, % per VIX point"),
+        y=y,
+        color=alt.Color("regime:N", title=None, legend=alt.Legend(orient="bottom"),
+                        scale=alt.Scale(domain=["Low-VIX days", "High-VIX days"], range=[BLUE, ORANGE])),
+        tooltip=[alt.Tooltip("industry:N"), alt.Tooltip("regime:N"), alt.Tooltip("size:Q", title="|β_vol|"),
+                 alt.Tooltip("result:N", title="Difference")],
+    )
+    return ((lines + dots).properties(width=560, height=alt.Step(14))
+            .configure(font=FONT).configure_axis(labelFontSize=11, titleFontSize=12)
+            .configure_legend(labelFontSize=12))

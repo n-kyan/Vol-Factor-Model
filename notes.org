@@ -76,3 +76,15 @@ Cooking: Evidence is the ingredients. Analysis is the cooking. Nobody serves a p
 The “so what?” test: After every piece of evidence, ask “so what?” The answer is your analysis. If you can’t answer it, the evidence is decoration.
 
 A practical rule of thumb you could pass on: if a paragraph/project is mostly quotes or data with a sentence of commentary, flip the ratio.
+
+* Notes from Chris Lundberg speaker event
+Consider the 7 sins of quant investing from deutche bank
+
+
+using AI in quant investing to increase IC / signal strength while keeping the quant strength of high breadth. Need to be consider the buily in bias of various LLM models.
+
+How to gauge if bets are independent.
+
+why did banks have to drop their prop trading after 2008 and why can dedicated prop shops stil do it.
+
+Since I will be showing this to him soon, I want to include a section about the seven deadly sins of quant investing.

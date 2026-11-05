@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:2718:2718"
+    volumes:
+      - raw-data:/app/data/raw
+      - marimo-cache:/app/src/__marimo__
+    secrets:
+      - marimo_token
+    restart: unless-stopped
+
+volumes:
+  raw-data:
+  marimo-cache:
+
+secrets:
+  marimo_token:
+    file: ./secrets/marimo_token

@@ -22,6 +22,7 @@ Python 3.11, managed with uv.
 uv sync                          # install deps
 uv run marimo edit src/main.py   # develop the notebook
 uv run marimo run src/main.py    # view it as an app
+./export_report.sh               # export all notebooks to report/ (static HTML) and report.zip, for email
 ```
 
 There are no tests, lint config, or CI.
@@ -29,7 +30,7 @@ There are no tests, lint config, or CI.
 ## Architecture
 
 - **Notebooks** (marimo): `src/main.py` (the deliverable, takeaways only) and the companions `data_nb.py`, `factors_nb.py`, `ols_nb.py`, `estimation_nb.py`, `validation_nb.py`, `hypotheses_nb.py`. They import plain functions from the sibling modules (`from data import ...`), so the modules must stay plain Python files. `main.py` caches the Monte Carlo run with `mo.persistent_cache` in `src/__marimo__/cache/`; delete that folder after changing `validation.py` or `estimation.py`.
-- `src/charts.py`: shared palette and chart helpers, plus `gt_table` (great_tables) for the static result tables in `main.py`; interactive tables stay `mo.ui.table`. `src/stats.py`: describe_moves, tail_counts.
+- `src/charts.py`: shared palette (validated for colorblind separation and contrast), PT Sans fonts, chart helpers, `gt_table` (great_tables) for the static result tables in `main.py`, and the two candidate H1 charts (`h1_bar_chart`, `h1_dumbbell`, Altair). Chart titles go in a `###` markdown heading above the chart in `main.py`. `src/stats.py`: describe_moves, tail_counts.
 - `src/data.py`: data loading and panel assembly.
   - `download_raw_data` caches downloads in `data/raw/` (gitignored) and never re-downloads if the file exists. Delete the file to refresh it.
   - `load_kfrench_table` parses Ken French's multi-section CSV zips by locating the `section_title` row and then the next run of `YYYYMMDD` rows. It converts percent to decimal and -99.99/-999 to NaN.

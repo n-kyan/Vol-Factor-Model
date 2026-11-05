@@ -7,3 +7,10 @@ data/raw/
 \#*#
 .#*
 *~
+
+# Exported report (export_report.sh)
+report/
+report.zip
+
+# Password to acess hosted instance
+secrets/
